@@ -121,14 +121,19 @@ function parseNoMessages(text) {
 }
 
 function splitEmojiAndText(option) {
-  // Separa el emoji al final del texto (ej: "Pizza 🍕" -> {emoji: "🍕", text: "Pizza"})
+  // Separa el último emoji del texto (ej: "Pizza 🍕" -> {emoji: "🍕", text: "Pizza"})
   // Soporta emojis con selector de variación (VS16 \uFE0F), ZWJ sequences y tonos de piel.
-  const emojiRegex = /([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])(?:\uFE0F|\u200D[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]|[\u{1F3FB}-\u{1F3FF}])*$/u;
-  const match = option.match(emojiRegex);
-  if (match) {
-    const emoji = match[0];
-    const text = option.slice(0, option.length - emoji.length).trim();
-    return { emoji, text };
+  const emojiRegex = /([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])(?:\uFE0F|\u200D[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]|[\u{1F3FB}-\u{1F3FF}])*/gu;
+  const matches = Array.from(option.matchAll(emojiRegex));
+  if (matches.length > 0) {
+    const lastMatch = matches[matches.length - 1];
+    const emoji = lastMatch[0];
+    const emojiEnd = lastMatch.index + emoji.length;
+    // Solo separamos si el emoji está al final (ignorando espacios)
+    if (option.slice(emojiEnd).trim() === '') {
+      const text = option.slice(0, lastMatch.index).trim();
+      return { emoji, text };
+    }
   }
   return { emoji: '✨', text: option.trim() };
 }
