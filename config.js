@@ -27,6 +27,7 @@ const savedConfig = {
     "Íntimo 🕯️"
   ],
   "notePlaceholder": "Ej: me muero de ganas de verte ✨",
+  "sheetsWebhookUrl": "https://script.google.com/macros/s/AKfycbwwTRsQtNca66ndyfRq1pFaRPStXkwbmrj3ctKz_jjtWQPJQl1JWHHXxvQ5AnM3yHg3/exec",
   "noMessages": [
     "No 💔",
     "¿Segura?",

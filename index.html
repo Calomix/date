@@ -68,6 +68,12 @@ Pensalo bien 💭</textarea>
       </div>
 
       <div class="config-group">
+        <label for="cfg-sheets-webhook-url">URL del Web App de Google Sheets</label>
+        <input type="url" id="cfg-sheets-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+        <p class="field-hint">Opcional. Si la completás, cada respuesta se guarda automáticamente en tu planilla de Google.</p>
+      </div>
+
+      <div class="config-group">
         <label for="cfg-github-token">Token de GitHub (cloud sync)</label>
         <input type="password" id="cfg-github-token" placeholder="ghp_..." autocomplete="off">
         <p class="field-hint">Se guarda solo en este navegador. Necesita permiso <code>public_repo</code>. Si lo dejás vacío, la config se guarda solo acá.</p>

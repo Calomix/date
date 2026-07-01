@@ -46,7 +46,8 @@ const defaultConfig = {
   plan: ['Cenar 🍷', 'Tomar algo 🧉', 'Pasear 🌙', 'Sorpresa 🎁'],
   vibe: ['Tranqui 🌿', 'Animado 🎉', 'Íntimo 🕯️'],
   notePlaceholder: 'Ej: me muero de ganas de verte ✨',
-  noMessages: ['No 💔', '¿Segura?', '¿Segurísima? 🥺', '¿Cómo que no? 😏', 'Pensalo bien 💭']
+  noMessages: ['No 💔', '¿Segura?', '¿Segurísima? 🥺', '¿Cómo que no? 😏', 'Pensalo bien 💭'],
+  sheetsWebhookUrl: ''
 };
 
 const stepConfig = [
@@ -87,6 +88,7 @@ const cfgVibe = document.getElementById('cfg-vibe');
 const cfgNotePlaceholder = document.getElementById('cfg-note-placeholder');
 const cfgNoMessages = document.getElementById('cfg-no-messages');
 const cfgGitHubToken = document.getElementById('cfg-github-token');
+const cfgSheetsWebhookUrl = document.getElementById('cfg-sheets-webhook-url');
 const btnSaveConfig = document.getElementById('btn-save-config');
 const btnDefaultConfig = document.getElementById('btn-default-config');
 
@@ -148,7 +150,8 @@ function buildConfigJsContent() {
     plan: config.plan,
     vibe: config.vibe,
     notePlaceholder: config.notePlaceholder,
-    noMessages: config.noMessages
+    noMessages: config.noMessages,
+    sheetsWebhookUrl: config.sheetsWebhookUrl || ''
   };
 
   return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
@@ -265,6 +268,7 @@ function fillConfigForm() {
   cfgVibe.value = config.vibe.join(', ');
   cfgNotePlaceholder.value = config.notePlaceholder;
   cfgNoMessages.value = config.noMessages.join('\n');
+  cfgSheetsWebhookUrl.value = config.sheetsWebhookUrl || '';
   cfgGitHubToken.value = loadGitHubToken() || '';
 }
 
@@ -277,7 +281,8 @@ function readConfigForm() {
     plan: parseOptions(cfgPlan.value),
     vibe: parseOptions(cfgVibe.value),
     notePlaceholder: cfgNotePlaceholder.value.trim() || defaultConfig.notePlaceholder,
-    noMessages: parseNoMessages(cfgNoMessages.value)
+    noMessages: parseNoMessages(cfgNoMessages.value),
+    sheetsWebhookUrl: cfgSheetsWebhookUrl.value.trim()
   };
 }
 
@@ -495,7 +500,8 @@ function generateWizard() {
     <div class="step-emoji">💌</div>
     <h2>Una notita para mí</h2>
     <p class="subtitle">Opcional, pero me encantaría leerte</p>
-    <textarea id="note" rows="4" placeholder="${escapeHtml(config.notePlaceholder)}"></textarea>
+    <textarea id="note" rows="4" maxlength="200" placeholder="${escapeHtml(config.notePlaceholder)}"></textarea>
+    <div class="char-counter" id="note-counter">0/200</div>
     <button id="btn-summary" class="btn btn-primary">Ver resumen 💕</button>
   `;
   stepsContainer.appendChild(noteStep);
@@ -524,7 +530,16 @@ function generateWizard() {
     buildSummary();
     showScreen(resultScreen);
     startConfetti();
+    saveResponseToSheet();
   });
+
+  const noteInput = document.getElementById('note');
+  const noteCounter = document.getElementById('note-counter');
+  if (noteInput && noteCounter) {
+    noteInput.addEventListener('input', () => {
+      noteCounter.textContent = `${noteInput.value.length}/200`;
+    });
+  }
 }
 
 function updateWizard() {
@@ -591,6 +606,34 @@ function buildSummary() {
   `).join('');
 }
 
+async function saveResponseToSheet() {
+  const url = config.sheetsWebhookUrl?.trim();
+  if (!url) return;
+
+  const payload = {
+    date: new Date().toISOString(),
+    food: selections.food || '',
+    time: selections.time || '',
+    plan: selections.plan || '',
+    vibe: selections.vibe || '',
+    note: document.getElementById('note')?.value.trim() || ''
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.warn('Respuesta no OK al guardar en Sheets:', response.status);
+    }
+  } catch (err) {
+    console.error('Error guardando respuesta en Sheets:', err);
+  }
+}
+
 function buildShareText() {
   const data = getSummaryData();
   let text = '¡Tenemos una cita! 💕\n\n';
@@ -654,12 +697,120 @@ btnRestart.addEventListener('click', () => {
 // Generar imagen del resumen
 // ═══════════════════════════════════════════════════════════════════
 
+function wrapText(ctx, text, maxWidth) {
+  const words = String(text).split(' ');
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if (!word) continue;
+    const testLine = currentLine ? currentLine + ' ' + word : word;
+    if (ctx.measureText(testLine).width <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+
+      // Si una sola palabra excede el ancho, la cortamos carácter a carácter
+      if (ctx.measureText(word).width > maxWidth) {
+        let partial = '';
+        for (const char of word) {
+          const testPartial = partial + char;
+          if (ctx.measureText(testPartial).width <= maxWidth) {
+            partial = testPartial;
+          } else {
+            if (partial) lines.push(partial);
+            partial = char;
+          }
+        }
+        currentLine = partial;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
 function drawShareImage() {
   return new Promise((resolve) => {
     const canvas = shareCanvas;
     const ctx = canvas.getContext('2d');
     const width = 1080;
-    const height = 1440;
+
+    // Configuración del layout de tarjetas
+    const normalCardWidth = 460;
+    const noteCardWidth = 950; // ancho completo (dos columnas)
+    const baseCardHeight = 240;
+    const gapX = 30;
+    const gapY = 30;
+    const startX = (width - (normalCardWidth * 2 + gapX)) / 2;
+    const startY = 330;
+    const valueLineHeight = 48;
+
+    const data = getSummaryData();
+
+    // Separar la notita (siempre va al final) del resto de items
+    const normalItems = [];
+    let noteItem = null;
+    data.forEach(item => {
+      if (item.label === 'Notita 💌') {
+        noteItem = item;
+      } else {
+        normalItems.push(item);
+      }
+    });
+
+    // Precalcular líneas y altura de las tarjetas normales
+    ctx.font = 'bold 38px Quicksand, sans-serif';
+    const normalCards = normalItems.map(item => {
+      const lines = wrapText(ctx, item.value, normalCardWidth - 60);
+      const neededHeight = lines.length <= 1
+        ? baseCardHeight
+        : 212 + lines.length * valueLineHeight + 28;
+      const height = Math.max(baseCardHeight, neededHeight);
+      return { ...item, lines, height };
+    });
+
+    // Calcular altura de cada fila normal (la más alta de sus dos tarjetas)
+    const normalRowHeights = [];
+    for (let i = 0; i < normalCards.length; i += 2) {
+      const left = normalCards[i];
+      const right = normalCards[i + 1];
+      normalRowHeights.push(Math.max(left.height, right ? right.height : 0));
+    }
+
+    // Altura acumulada del grid normal
+    const normalGridHeight = normalRowHeights.length
+      ? normalRowHeights.reduce((sum, h) => sum + h, 0) + (normalRowHeights.length - 1) * gapY
+      : 0;
+
+    // Precalcular la notita con ancho completo
+    let noteCard = null;
+    if (noteItem) {
+      const noteY = normalGridHeight ? startY + normalGridHeight + gapY : startY;
+      const lines = wrapText(ctx, noteItem.value, noteCardWidth - 60);
+      const neededHeight = lines.length <= 1
+        ? baseCardHeight
+        : 212 + lines.length * valueLineHeight + 28;
+      const height = Math.max(baseCardHeight, neededHeight);
+      noteCard = {
+        ...noteItem,
+        lines,
+        height,
+        x: startX,
+        y: noteY,
+        width: noteCardWidth
+      };
+    }
+
+    // Calcular altura total del canvas según el contenido
+    const lastY = noteCard
+      ? noteCard.y + noteCard.height
+      : startY + normalGridHeight;
+    const footerY = lastY + 90;
+    const height = footerY + 160;
+
     canvas.width = width;
     canvas.height = height;
 
@@ -675,7 +826,7 @@ function drawShareImage() {
     drawBlob(ctx, 140, 180, 280, '#ff9ebb', 0.35);
     drawBlob(ctx, 900, 420, 360, '#d4bbff', 0.28);
     drawBlob(ctx, -80, 900, 400, '#ffd8be', 0.30);
-    drawBlob(ctx, 1020, 1150, 320, '#c2f0dc', 0.28);
+    drawBlob(ctx, 1020, height - 290, 320, '#c2f0dc', 0.28);
 
     // Título principal
     ctx.textAlign = 'center';
@@ -691,26 +842,20 @@ function drawShareImage() {
     ctx.font = 'italic 38px Quicksand, sans-serif';
     ctx.fillText('Así quedó todo:', width / 2, 270);
 
-    const data = getSummaryData();
-    const cardWidth = 460;
-    const cardHeight = 240;
-    const gapX = 30;
-    const gapY = 30;
-    const startX = (width - (cardWidth * 2 + gapX)) / 2;
-    const startY = 330;
-
-    data.forEach((item, idx) => {
+    // Dibujar tarjetas normales
+    normalCards.forEach((item, idx) => {
       const col = idx % 2;
       const row = Math.floor(idx / 2);
-      const x = startX + col * (cardWidth + gapX);
-      const y = startY + row * (cardHeight + gapY);
+      const x = startX + col * (normalCardWidth + gapX);
+      const y = startY + normalRowHeights.slice(0, row).reduce((sum, h) => sum + h + gapY, 0);
+      const cardHeight = item.height;
 
       // Card
       ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
       ctx.shadowColor = 'rgba(90, 74, 79, 0.08)';
       ctx.shadowBlur = 28;
       ctx.shadowOffsetY = 14;
-      roundRect(ctx, x, y, cardWidth, cardHeight, 32);
+      roundRect(ctx, x, y, normalCardWidth, cardHeight, 32);
       ctx.fill();
       ctx.shadowColor = 'transparent';
 
@@ -724,15 +869,40 @@ function drawShareImage() {
       ctx.font = '600 28px Quicksand, sans-serif';
       ctx.fillText(item.label, x + 26, y + 160);
 
-      // Value
+      // Value con ajuste de líneas
       ctx.fillStyle = '#5a4a4f';
       ctx.font = 'bold 38px Quicksand, sans-serif';
-      const value = item.value.length > 16 ? item.value.slice(0, 14) + '...' : item.value;
-      ctx.fillText(value, x + 26, y + 212);
+      item.lines.forEach((line, lineIdx) => {
+        ctx.fillText(line, x + 26, y + 212 + lineIdx * valueLineHeight);
+      });
     });
 
-    const lastY = startY + Math.ceil(data.length / 2) * (cardHeight + gapY);
-    const footerY = lastY + 90;
+    // Dibujar notita a ancho completo
+    if (noteCard) {
+      const { x, y, width: cardW, height: cardH } = noteCard;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+      ctx.shadowColor = 'rgba(90, 74, 79, 0.08)';
+      ctx.shadowBlur = 28;
+      ctx.shadowOffsetY = 14;
+      roundRect(ctx, x, y, cardW, cardH, 32);
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      ctx.textAlign = 'left';
+      ctx.font = '90px Quicksand, sans-serif';
+      ctx.fillText(getEmojiForLabel(noteCard.label), x + 26, y + 110);
+
+      ctx.fillStyle = '#8a7a80';
+      ctx.font = '600 28px Quicksand, sans-serif';
+      ctx.fillText(noteCard.label, x + 26, y + 160);
+
+      ctx.fillStyle = '#5a4a4f';
+      ctx.font = 'bold 38px Quicksand, sans-serif';
+      noteCard.lines.forEach((line, lineIdx) => {
+        ctx.fillText(line, x + 26, y + 212 + lineIdx * valueLineHeight);
+      });
+    }
 
     // Caja final tipo "wrapped"
     ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
