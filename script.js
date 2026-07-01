@@ -38,30 +38,88 @@ Object.defineProperty(window, 'secreto', {
 // Configuración
 // ═══════════════════════════════════════════════════════════════════
 
-const defaultConfig = {
+const defaultVersion = {
+  id: 'default',
+  name: 'Default',
   inviteTitle: '¿Quieres salir conmigo?',
   inviteSubtitle: 'Tengo ganas de verte y quiero que coordinemos todo juntos.',
-  food: ['Pizza 🍕', 'Hamburguesas 🍔', 'Al plato 🍽️', 'Lo que sea mientras sea contigo ✨'],
-  time: ['19:00 🕖', '20:00 🕗', '20:30 🕣', 'Nos encontramos allí 🚶'],
-  plan: ['Cenar 🍷', 'Tomar algo 🧉', 'Pasear 🌙', 'Sorpresa 🎁'],
-  vibe: ['Tranqui 🌿', 'Animado 🎉', 'Íntimo 🕯️'],
   notePlaceholder: 'Ej: me muero de ganas de verte ✨',
   noMessages: ['No 💔', '¿Segura?', '¿Segurísima? 🥺', '¿Cómo que no? 😏', 'Pensalo bien 💭'],
-  sheetsWebhookUrl: ''
+  steps: [
+    { key: 'food', emoji: '🍽️', title: '¿Qué se te antoja?', subtitle: 'Elige lo que más te provoque', gridClass: 'options-grid', options: ['Pizza 🍕', 'Hamburguesas 🍔', 'Al plato 🍽️', 'Lo que sea mientras sea contigo ✨'] },
+    { key: 'time', emoji: '🕖', title: '¿A qué hora te busco mañana?', subtitle: 'O si preferís encontrarnos', gridClass: 'options-grid', options: ['19:00 🕖', '20:00 🕗', '20:30 🕣', 'Nos encontramos allí 🚶'] },
+    { key: 'plan', emoji: '✨', title: '¿Qué onda el plan?', subtitle: 'Contame qué te pinta', gridClass: 'options-grid', options: ['Cenar 🍷', 'Tomar algo 🧉', 'Pasear 🌙', 'Sorpresa 🎁'] },
+    { key: 'vibe', emoji: '🌿', title: '¿Ambiente?', subtitle: 'Elige la onda de la salida', gridClass: 'options-grid-three', options: ['Tranqui 🌿', 'Animado 🎉', 'Íntimo 🕯️'] }
+  ]
 };
 
-const stepConfig = [
-  { key: 'food', emoji: '🍽️', title: '¿Qué se te antoja?', subtitle: 'Elige lo que más te provoque', gridClass: 'options-grid' },
-  { key: 'time', emoji: '🕖', title: '¿A qué hora te busco mañana?', subtitle: 'O si preferís encontrarnos', gridClass: 'options-grid' },
-  { key: 'plan', emoji: '✨', title: '¿Qué onda el plan?', subtitle: 'Contame qué te pinta', gridClass: 'options-grid' },
-  { key: 'vibe', emoji: '🌿', title: '¿Ambiente?', subtitle: 'Elige la onda de la salida', gridClass: 'options-grid-three' }
-];
+const defaultConfig = {
+  telegramBotToken: '',
+  telegramChatId: '',
+  versions: [JSON.parse(JSON.stringify(defaultVersion))]
+};
 
-let config = loadSavedConfig() || loadConfig() || { ...defaultConfig };
+function migrateConfig(input) {
+  if (!input) return JSON.parse(JSON.stringify(defaultConfig));
+
+  // Si ya tiene versions, está en el nuevo formato
+  if (Array.isArray(input.versions) && input.versions.length > 0) {
+    return {
+      telegramBotToken: input.telegramBotToken || '',
+      telegramChatId: input.telegramChatId || '',
+      versions: input.versions.map(v => ({ ...defaultVersion, ...v }))
+    };
+  }
+
+  // Formato legacy: convertir a una única versión default
+  const legacyVersion = {
+    id: 'default',
+    name: 'Default',
+    inviteTitle: input.inviteTitle || defaultVersion.inviteTitle,
+    inviteSubtitle: input.inviteSubtitle || defaultVersion.inviteSubtitle,
+    notePlaceholder: input.notePlaceholder || defaultVersion.notePlaceholder,
+    noMessages: input.noMessages || [...defaultVersion.noMessages],
+    steps: [
+      { key: 'food', emoji: '🍽️', title: '¿Qué se te antoja?', subtitle: 'Elige lo que más te provoque', gridClass: 'options-grid', options: input.food || [...defaultVersion.steps[0].options] },
+      { key: 'time', emoji: '🕖', title: '¿A qué hora te busco mañana?', subtitle: 'O si preferís encontrarnos', gridClass: 'options-grid', options: input.time || [...defaultVersion.steps[1].options] },
+      { key: 'plan', emoji: '✨', title: '¿Qué onda el plan?', subtitle: 'Contame qué te pinta', gridClass: 'options-grid', options: input.plan || [...defaultVersion.steps[2].options] },
+      { key: 'vibe', emoji: '🌿', title: '¿Ambiente?', subtitle: 'Elige la onda de la salida', gridClass: 'options-grid-three', options: input.vibe || [...defaultVersion.steps[3].options] }
+    ]
+  };
+
+  return {
+    telegramBotToken: input.telegramBotToken || '',
+    telegramChatId: input.telegramChatId || '',
+    versions: [legacyVersion]
+  };
+}
+
+let config = migrateConfig(loadSavedConfig() || loadConfig() || { ...defaultConfig });
+let activeVersion = getActiveVersion();
 let selections = {};
-stepConfig.forEach(step => selections[step.key] = null);
+activeVersion.steps.forEach(step => selections[step.key] = null);
 let currentStep = 0;
 let noMessageIndex = 0;
+let editingVersionIndex = 0;
+
+function getActiveVersion() {
+  const params = new URLSearchParams(window.location.search);
+  const versionId = params.get('v');
+  const versionName = params.get('n');
+
+  if (versionId && config.versions) {
+    const found = config.versions.find(v => v.id === versionId);
+    if (found) return found;
+  }
+
+  if (versionName && config.versions) {
+    const normalized = versionName.toLowerCase().trim();
+    const found = config.versions.find(v => v.name.toLowerCase().trim() === normalized || v.id.toLowerCase().trim() === normalized);
+    if (found) return found;
+  }
+
+  return config.versions?.[0] || JSON.parse(JSON.stringify(defaultVersion));
+}
 
 // Referencias DOM
 const configScreen = document.getElementById('config-screen');
@@ -81,14 +139,18 @@ const shareCanvas = document.getElementById('share-canvas');
 
 const cfgInviteTitle = document.getElementById('cfg-invite-title');
 const cfgInviteSubtitle = document.getElementById('cfg-invite-subtitle');
-const cfgFood = document.getElementById('cfg-food');
-const cfgTime = document.getElementById('cfg-time');
-const cfgPlan = document.getElementById('cfg-plan');
-const cfgVibe = document.getElementById('cfg-vibe');
 const cfgNotePlaceholder = document.getElementById('cfg-note-placeholder');
 const cfgNoMessages = document.getElementById('cfg-no-messages');
 const cfgGitHubToken = document.getElementById('cfg-github-token');
-const cfgSheetsWebhookUrl = document.getElementById('cfg-sheets-webhook-url');
+const cfgTelegramBotToken = document.getElementById('cfg-telegram-bot-token');
+const cfgTelegramChatId = document.getElementById('cfg-telegram-chat-id');
+const cfgVersionSelector = document.getElementById('cfg-version-selector');
+const cfgVersionId = document.getElementById('cfg-version-id');
+const cfgVersionName = document.getElementById('cfg-version-name');
+const cfgVersionSteps = document.getElementById('cfg-version-steps');
+const btnAddVersion = document.getElementById('btn-add-version');
+const btnDuplicateVersion = document.getElementById('btn-duplicate-version');
+const btnDeleteVersion = document.getElementById('btn-delete-version');
 const btnSaveConfig = document.getElementById('btn-save-config');
 const btnDefaultConfig = document.getElementById('btn-default-config');
 
@@ -143,15 +205,9 @@ function saveGitHubToken(token) {
 
 function buildConfigJsContent() {
   const configObject = {
-    inviteTitle: config.inviteTitle,
-    inviteSubtitle: config.inviteSubtitle,
-    food: config.food,
-    time: config.time,
-    plan: config.plan,
-    vibe: config.vibe,
-    notePlaceholder: config.notePlaceholder,
-    noMessages: config.noMessages,
-    sheetsWebhookUrl: config.sheetsWebhookUrl || ''
+    telegramBotToken: config.telegramBotToken || '',
+    telegramChatId: config.telegramChatId || '',
+    versions: config.versions || []
   };
 
   return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
@@ -259,36 +315,82 @@ function showScreen(screen) {
 // Configuración
 // ═══════════════════════════════════════════════════════════════════
 
+function serializeSteps(steps) {
+  return steps.map(step => {
+    return `${step.emoji}|${step.key}|${step.title}|${step.subtitle}|${step.gridClass}|${step.options.join(', ')}`;
+  }).join('\n');
+}
+
+function parseSteps(text) {
+  return text.split('\n').map(line => line.trim()).filter(line => line.length > 0).map(line => {
+    const parts = line.split('|');
+    if (parts.length < 6) return null;
+    return {
+      emoji: parts[0].trim(),
+      key: parts[1].trim(),
+      title: parts[2].trim(),
+      subtitle: parts[3].trim(),
+      gridClass: parts[4].trim(),
+      options: parts.slice(5).join('|').split(',').map(s => s.trim()).filter(s => s.length > 0)
+    };
+  }).filter(Boolean);
+}
+
+function updateVersionSelector() {
+  if (!cfgVersionSelector) return;
+  cfgVersionSelector.innerHTML = '';
+  config.versions.forEach((version, idx) => {
+    const option = document.createElement('option');
+    option.value = idx;
+    option.textContent = version.name || version.id || `Versión ${idx + 1}`;
+    if (idx === editingVersionIndex) option.selected = true;
+    cfgVersionSelector.appendChild(option);
+  });
+}
+
 function fillConfigForm() {
-  cfgInviteTitle.value = config.inviteTitle;
-  cfgInviteSubtitle.value = config.inviteSubtitle;
-  cfgFood.value = config.food.join(', ');
-  cfgTime.value = config.time.join(', ');
-  cfgPlan.value = config.plan.join(', ');
-  cfgVibe.value = config.vibe.join(', ');
-  cfgNotePlaceholder.value = config.notePlaceholder;
-  cfgNoMessages.value = config.noMessages.join('\n');
-  cfgSheetsWebhookUrl.value = config.sheetsWebhookUrl || '';
+  const version = config.versions[editingVersionIndex] || config.versions[0];
+
+  cfgInviteTitle.value = version.inviteTitle;
+  cfgInviteSubtitle.value = version.inviteSubtitle;
+  cfgNotePlaceholder.value = version.notePlaceholder;
+  cfgNoMessages.value = version.noMessages.join('\n');
+  cfgTelegramBotToken.value = config.telegramBotToken || '';
+  cfgTelegramChatId.value = config.telegramChatId || '';
+  cfgVersionId.value = version.id;
+  cfgVersionName.value = version.name;
+  cfgVersionSteps.value = serializeSteps(version.steps);
   cfgGitHubToken.value = loadGitHubToken() || '';
+
+  updateVersionSelector();
 }
 
 function readConfigForm() {
+  const version = config.versions[editingVersionIndex] || config.versions[0];
+
+  version.id = cfgVersionId.value.trim() || version.id;
+  version.name = cfgVersionName.value.trim() || version.name;
+  version.inviteTitle = cfgInviteTitle.value.trim() || defaultVersion.inviteTitle;
+  version.inviteSubtitle = cfgInviteSubtitle.value.trim() || defaultVersion.inviteSubtitle;
+  version.notePlaceholder = cfgNotePlaceholder.value.trim() || defaultVersion.notePlaceholder;
+  version.noMessages = parseNoMessages(cfgNoMessages.value);
+  version.steps = parseSteps(cfgVersionSteps.value);
+
   return {
-    inviteTitle: cfgInviteTitle.value.trim() || defaultConfig.inviteTitle,
-    inviteSubtitle: cfgInviteSubtitle.value.trim() || defaultConfig.inviteSubtitle,
-    food: parseOptions(cfgFood.value),
-    time: parseOptions(cfgTime.value),
-    plan: parseOptions(cfgPlan.value),
-    vibe: parseOptions(cfgVibe.value),
-    notePlaceholder: cfgNotePlaceholder.value.trim() || defaultConfig.notePlaceholder,
-    noMessages: parseNoMessages(cfgNoMessages.value),
-    sheetsWebhookUrl: cfgSheetsWebhookUrl.value.trim()
+    telegramBotToken: cfgTelegramBotToken.value.trim(),
+    telegramChatId: cfgTelegramChatId.value.trim(),
+    versions: config.versions
   };
 }
 
+function renderTemplate(text, version) {
+  return text.replace(/\{\{name\}\}/g, version.name);
+}
+
 function applyConfig() {
-  inviteTitle.textContent = config.inviteTitle;
-  inviteSubtitle.textContent = config.inviteSubtitle;
+  activeVersion = getActiveVersion();
+  inviteTitle.textContent = renderTemplate(activeVersion.inviteTitle, activeVersion);
+  inviteSubtitle.textContent = renderTemplate(activeVersion.inviteSubtitle, activeVersion);
   generateWizard();
 }
 
@@ -305,7 +407,16 @@ function exitConfigMode() {
 
 btnSaveConfig.addEventListener('click', async () => {
   config = readConfigForm();
-  if (config.noMessages.length === 0) config.noMessages = [...defaultConfig.noMessages];
+
+  // Asegurar que cada versión tenga noMessages válidos
+  config.versions.forEach(version => {
+    if (!version.noMessages || version.noMessages.length === 0) {
+      version.noMessages = [...defaultVersion.noMessages];
+    }
+    if (!version.steps || version.steps.length === 0) {
+      version.steps = JSON.parse(JSON.stringify(defaultVersion.steps));
+    }
+  });
 
   const token = cfgGitHubToken.value.trim();
   saveGitHubToken(token);
@@ -330,9 +441,54 @@ btnSaveConfig.addEventListener('click', async () => {
 });
 
 btnDefaultConfig.addEventListener('click', () => {
-  config = { ...defaultConfig };
+  config = JSON.parse(JSON.stringify(defaultConfig));
+  editingVersionIndex = 0;
   fillConfigForm();
 });
+
+if (cfgVersionSelector) {
+  cfgVersionSelector.addEventListener('change', () => {
+    editingVersionIndex = parseInt(cfgVersionSelector.value, 10) || 0;
+    fillConfigForm();
+  });
+}
+
+if (btnAddVersion) {
+  btnAddVersion.addEventListener('click', () => {
+    const newVersion = JSON.parse(JSON.stringify(defaultVersion));
+    newVersion.id = `version${config.versions.length + 1}`;
+    newVersion.name = `Versión ${config.versions.length + 1}`;
+    config.versions.push(newVersion);
+    editingVersionIndex = config.versions.length - 1;
+    fillConfigForm();
+  });
+}
+
+if (btnDuplicateVersion) {
+  btnDuplicateVersion.addEventListener('click', () => {
+    const current = config.versions[editingVersionIndex];
+    if (!current) return;
+    const copy = JSON.parse(JSON.stringify(current));
+    copy.id = `${current.id}-copy`;
+    copy.name = `${current.name} (copia)`;
+    config.versions.push(copy);
+    editingVersionIndex = config.versions.length - 1;
+    fillConfigForm();
+  });
+}
+
+if (btnDeleteVersion) {
+  btnDeleteVersion.addEventListener('click', () => {
+    if (config.versions.length <= 1) {
+      alert('Tiene que haber al menos una versión.');
+      return;
+    }
+    if (!confirm('¿Seguro que querés eliminar esta versión?')) return;
+    config.versions.splice(editingVersionIndex, 1);
+    editingVersionIndex = Math.max(0, editingVersionIndex - 1);
+    fillConfigForm();
+  });
+}
 
 
 
@@ -407,11 +563,12 @@ function moveNoButton() {
   btnNo.style.top = `${finalPos.top}px`;
 
   // Primer mensaje siempre es "No 💔", luego cicla por el resto
+  const versionMessages = activeVersion.noMessages || defaultVersion.noMessages;
   if (noMessageIndex === 0) {
-    btnNo.textContent = config.noMessages[0] || 'No 💔';
+    btnNo.textContent = versionMessages[0] || 'No 💔';
     noMessageIndex = 1;
   } else {
-    const messages = config.noMessages.slice(1);
+    const messages = versionMessages.slice(1);
     const idx = (noMessageIndex - 1) % messages.length;
     btnNo.textContent = messages[idx] || 'No 💔';
     noMessageIndex = ((noMessageIndex - 1) + 1) % messages.length + 1;
@@ -436,8 +593,10 @@ btnNo.addEventListener('click', (e) => {
 });
 
 btnYes.addEventListener('click', () => {
+  activeVersion = getActiveVersion();
   currentStep = 0;
-  stepConfig.forEach(step => selections[step.key] = null);
+  selections = {};
+  activeVersion.steps.forEach(step => selections[step.key] = null);
   updateWizard();
   showScreen(detailsScreen);
 });
@@ -449,11 +608,13 @@ btnYes.addEventListener('click', () => {
 function generateWizard() {
   const stepsContainer = document.getElementById('wizard-steps');
   const dotsContainer = document.getElementById('progress-dots');
+  const steps = activeVersion.steps;
+  const totalSteps = steps.length + 1; // +1 por la notita
 
   stepsContainer.innerHTML = '';
   dotsContainer.innerHTML = '';
 
-  stepConfig.forEach((step, idx) => {
+  steps.forEach((step, idx) => {
     // Dots
     const dot = document.createElement('span');
     dot.className = 'dot' + (idx === 0 ? ' active' : '');
@@ -466,12 +627,12 @@ function generateWizard() {
     stepDiv.dataset.step = idx;
 
     const isGridThree = step.gridClass === 'options-grid-three';
-    const isWideLast = isGridThree && config[step.key].length % 2 === 1;
+    const isWideLast = isGridThree && step.options.length % 2 === 1;
 
     let optionsHtml = '';
-    config[step.key].forEach((opt, optIdx) => {
+    step.options.forEach((opt, optIdx) => {
       const parts = splitEmojiAndText(opt);
-      const wideClass = isWideLast && optIdx === config[step.key].length - 1 ? ' option-wide' : '';
+      const wideClass = isWideLast && optIdx === step.options.length - 1 ? ' option-wide' : '';
       optionsHtml += `
         <button class="option-big${wideClass}" data-value="${escapeHtml(parts.text)}">
           <span class="opt-emoji">${parts.emoji}</span>
@@ -495,12 +656,12 @@ function generateWizard() {
   // Paso de notita
   const noteStep = document.createElement('div');
   noteStep.className = 'step';
-  noteStep.dataset.step = stepConfig.length;
+  noteStep.dataset.step = steps.length;
   noteStep.innerHTML = `
     <div class="step-emoji">💌</div>
     <h2>Una notita para mí</h2>
     <p class="subtitle">Opcional, pero me encantaría leerte</p>
-    <textarea id="note" rows="4" maxlength="200" placeholder="${escapeHtml(config.notePlaceholder)}"></textarea>
+    <textarea id="note" rows="4" maxlength="200" placeholder="${escapeHtml(activeVersion.notePlaceholder)}"></textarea>
     <div class="char-counter" id="note-counter">0/200</div>
     <button id="btn-summary" class="btn btn-primary">Ver resumen 💕</button>
   `;
@@ -508,7 +669,7 @@ function generateWizard() {
 
   const noteDot = document.createElement('span');
   noteDot.className = 'dot';
-  noteDot.dataset.step = stepConfig.length;
+  noteDot.dataset.step = steps.length;
   dotsContainer.appendChild(noteDot);
 
   // Reatachar eventos
@@ -530,7 +691,7 @@ function generateWizard() {
     buildSummary();
     showScreen(resultScreen);
     startConfetti();
-    saveResponseToSheet();
+    sendResponseToTelegram();
   });
 
   const noteInput = document.getElementById('note');
@@ -543,6 +704,8 @@ function generateWizard() {
 }
 
 function updateWizard() {
+  const steps = activeVersion.steps;
+
   document.querySelectorAll('.step').forEach((step, idx) => {
     step.classList.toggle('active', idx === currentStep);
   });
@@ -551,7 +714,7 @@ function updateWizard() {
   });
   btnBack.classList.toggle('hidden', currentStep === 0);
 
-  const name = stepConfig[currentStep]?.key;
+  const name = steps[currentStep]?.key;
   if (name) {
     const group = document.querySelector(`.options-stack[data-name="${name}"]`);
     if (group) {
@@ -563,7 +726,7 @@ function updateWizard() {
 }
 
 function nextStep() {
-  if (currentStep < stepConfig.length) {
+  if (currentStep < activeVersion.steps.length) {
     currentStep++;
     updateWizard();
   }
@@ -584,7 +747,7 @@ btnBack.addEventListener('click', prevStep);
 
 function getSummaryData() {
   const data = [];
-  stepConfig.forEach(step => {
+  activeVersion.steps.forEach(step => {
     if (selections[step.key]) {
       data.push({ label: step.title.replace('?', ''), value: selections[step.key] });
     }
@@ -616,41 +779,46 @@ function formatDate(date) {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
-async function saveResponseToSheet() {
-  const url = config.sheetsWebhookUrl?.trim();
-  if (!url) {
-    console.log('[Sheets] No hay URL configurada.');
+async function sendResponseToTelegram() {
+  const token = config.telegramBotToken?.trim();
+  const chatId = config.telegramChatId?.trim();
+  if (!token || !chatId) {
+    console.log('[Telegram] No hay token o chatId configurado.');
     return;
   }
 
-  const payload = {
-    date: formatDate(new Date()),
-    food: selections.food || '',
-    time: selections.time || '',
-    plan: selections.plan || '',
-    vibe: selections.vibe || '',
-    note: document.getElementById('note')?.value.trim() || ''
-  };
+  const data = getSummaryData();
+  const note = document.getElementById('note')?.value.trim() || '';
+  let details = '';
+  data.forEach(item => {
+    details += `• ${item.label}: ${item.value}\n`;
+  });
 
-  console.log('[Sheets] Enviando a:', url);
-  console.log('[Sheets] Payload:', payload);
+  const message = `💕 *Nueva respuesta* 💕\n\n` +
+    `*Versión:* ${activeVersion.name}\n` +
+    `*Fecha:* ${formatDate(new Date())}\n\n` +
+    `${details}` +
+    (note ? `\n💌 *Notita:* ${note}` : '');
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'Markdown'
+      })
     });
 
-    console.log('[Sheets] Status:', response.status);
-    const text = await response.text();
-    console.log('[Sheets] Respuesta:', text);
+    const result = await response.json();
+    console.log('[Telegram] Respuesta:', result);
 
-    if (!response.ok) {
-      console.warn('[Sheets] Respuesta no OK:', response.status);
+    if (!response.ok || !result.ok) {
+      console.warn('[Telegram] Error:', result);
     }
   } catch (err) {
-    console.error('[Sheets] Error de red:', err);
+    console.error('[Telegram] Error de red:', err);
   }
 }
 
@@ -707,7 +875,8 @@ function dataUrlToBlob(dataUrl) {
 }
 
 btnRestart.addEventListener('click', () => {
-  stepConfig.forEach(step => selections[step.key] = null);
+  selections = {};
+  activeVersion.steps.forEach(step => selections[step.key] = null);
   noMessageIndex = 0;
   stopConfetti();
   showScreen(inviteScreen);

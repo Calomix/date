@@ -546,6 +546,60 @@ textarea:focus {
   z-index: 10;
 }
 
+.config-section {
+  text-align: left;
+  margin: 24px 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+}
+
+.config-section h3 {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  color: var(--accent-dark);
+}
+
+.version-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.version-select {
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid #f3e5f5;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+}
+
+.btn-small {
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  border-radius: 12px;
+}
+
+.btn-danger {
+  background: #ff7a7a;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #ff5252;
+}
+
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 @media (max-width: 480px) {
   .card {
     padding: 28px 20px;

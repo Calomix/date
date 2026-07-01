@@ -1,38 +1,75 @@
 // Configuración guardada del sitio.
 // Se actualiza automáticamente desde la web y se sincroniza por GitHub.
 const savedConfig = {
-  "inviteTitle": "¿Quieres salir conmigo?",
-  "inviteSubtitle": "Tengo ganas de verte y quiero que coordinemos todo juntos.",
-  "food": [
-    "Pizza 🍕",
-    "Hamburguesas 🍔",
-    "Al plato 🍽️",
-    "Lo que sea mientras sea contigo ✨"
-  ],
-  "time": [
-    "19:00 🕖",
-    "20:00 🕗",
-    "20:30 🕣",
-    "Nos encontramos allí 🚶"
-  ],
-  "plan": [
-    "Cenar 🍝",
-    "Tomar algo 🍷",
-    "Pasear 🌙",
-    "Sorpresa 🎁"
-  ],
-  "vibe": [
-    "Tranqui 🌿",
-    "Animado 🎉",
-    "Íntimo 🕯️"
-  ],
-  "notePlaceholder": "Ej: me muero de ganas de verte ✨",
-  "sheetsWebhookUrl": "https://script.google.com/macros/s/AKfycbwwTRsQtNca66ndyfRq1pFaRPStXkwbmrj3ctKz_jjtWQPJQl1JWHHXxvQ5AnM3yHg3/exec",
-  "noMessages": [
-    "No 💔",
-    "¿Segura?",
-    "¿Segurísima? 🥺",
-    "¿Cómo que no? 😏",
-    "Pensalo bien 💭"
+  "telegramBotToken": "",
+  "telegramChatId": "",
+  "versions": [
+    {
+      "id": "default",
+      "name": "Default",
+      "inviteTitle": "¿Quieres salir conmigo?",
+      "inviteSubtitle": "Tengo ganas de verte y quiero que coordinemos todo juntos.",
+      "notePlaceholder": "Ej: me muero de ganas de verte ✨",
+      "noMessages": [
+        "No 💔",
+        "¿Segura?",
+        "¿Segurísima? 🥺",
+        "¿Cómo que no? 😏",
+        "Pensalo bien 💭"
+      ],
+      "steps": [
+        {
+          "key": "food",
+          "emoji": "🍽️",
+          "title": "¿Qué se te antoja?",
+          "subtitle": "Elige lo que más te provoque",
+          "gridClass": "options-grid",
+          "options": [
+            "Pizza 🍕",
+            "Hamburguesas 🍔",
+            "Al plato 🍽️",
+            "Lo que sea mientras sea contigo ✨"
+          ]
+        },
+        {
+          "key": "time",
+          "emoji": "🕖",
+          "title": "¿A qué hora te busco mañana?",
+          "subtitle": "O si preferís encontrarnos",
+          "gridClass": "options-grid",
+          "options": [
+            "19:00 🕖",
+            "20:00 🕗",
+            "20:30 🕣",
+            "Nos encontramos allí 🚶"
+          ]
+        },
+        {
+          "key": "plan",
+          "emoji": "✨",
+          "title": "¿Qué onda el plan?",
+          "subtitle": "Contame qué te pinta",
+          "gridClass": "options-grid",
+          "options": [
+            "Cenar 🍝",
+            "Tomar algo 🍷",
+            "Pasear 🌙",
+            "Sorpresa 🎁"
+          ]
+        },
+        {
+          "key": "vibe",
+          "emoji": "🌿",
+          "title": "¿Ambiente?",
+          "subtitle": "Elige la onda de la salida",
+          "gridClass": "options-grid-three",
+          "options": [
+            "Tranqui 🌿",
+            "Animado 🎉",
+            "Íntimo 🕯️"
+          ]
+        }
+      ]
+    }
   ]
 };

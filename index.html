@@ -23,54 +23,73 @@
       <h1>Configurá tu invitación</h1>
       <p class="subtitle">Personalizá todo para esta cita y guardá para usar después.</p>
 
-      <div class="config-group">
-        <label for="cfg-invite-title">Título de la invitación</label>
-        <input type="text" id="cfg-invite-title" value="¿Quieres salir conmigo?">
-      </div>
+      <div class="config-section">
+        <h3>Versión del formulario</h3>
+        <div class="version-toolbar">
+          <select id="cfg-version-selector" class="version-select"></select>
+          <button type="button" id="btn-add-version" class="btn btn-small">+</button>
+          <button type="button" id="btn-duplicate-version" class="btn btn-small">Dup</button>
+          <button type="button" id="btn-delete-version" class="btn btn-small btn-danger">🗑</button>
+        </div>
 
-      <div class="config-group">
-        <label for="cfg-invite-subtitle">Subtítulo</label>
-        <input type="text" id="cfg-invite-subtitle" value="Tengo ganas de verte y quiero que coordinemos todo juntos.">
-      </div>
+        <div class="config-row">
+          <div class="config-group">
+            <label for="cfg-version-id">ID (para la URL)</label>
+            <input type="text" id="cfg-version-id" placeholder="ara">
+          </div>
+          <div class="config-group">
+            <label for="cfg-version-name">Nombre</label>
+            <input type="text" id="cfg-version-name" placeholder="Ara">
+          </div>
+        </div>
 
-      <div class="config-group">
-        <label for="cfg-food">Opciones de comida (separadas por coma)</label>
-        <textarea id="cfg-food" rows="2">Pizza 🍕, Hamburguesas 🍔, Al plato 🍽️, Lo que sea mientras sea contigo ✨</textarea>
-      </div>
+        <div class="config-group">
+          <label for="cfg-invite-title">Título de la invitación</label>
+          <input type="text" id="cfg-invite-title" value="¿Quieres salir conmigo?">
+        </div>
 
-      <div class="config-group">
-        <label for="cfg-time">Opciones de hora (separadas por coma)</label>
-        <textarea id="cfg-time" rows="2">19:00 🕖, 20:00 🕗, 20:30 🕣, Nos encontramos allí 🚶</textarea>
-      </div>
+        <div class="config-group">
+          <label for="cfg-invite-subtitle">Subtítulo</label>
+          <input type="text" id="cfg-invite-subtitle" value="Tengo ganas de verte y quiero que coordinemos todo juntos.">
+        </div>
 
-      <div class="config-group">
-        <label for="cfg-plan">Opciones de plan (separadas por coma)</label>
-        <textarea id="cfg-plan" rows="2">Cenar 🍷, Tomar algo 🧉, Pasear 🌙, Sorpresa 🎁</textarea>
-      </div>
+        <div class="config-group">
+          <label for="cfg-note-placeholder">Placeholder de la notita</label>
+          <input type="text" id="cfg-note-placeholder" value="Ej: me muero de ganas de verte ✨">
+        </div>
 
-      <div class="config-group">
-        <label for="cfg-vibe">Opciones de ambiente (separadas por coma)</label>
-        <textarea id="cfg-vibe" rows="2">Tranqui 🌿, Animado 🎉, Íntimo 🕯️</textarea>
-      </div>
-
-      <div class="config-group">
-        <label for="cfg-note-placeholder">Placeholder de la notita</label>
-        <input type="text" id="cfg-note-placeholder" value="Ej: me muero de ganas de verte ✨">
-      </div>
-
-      <div class="config-group">
-        <label for="cfg-no-messages">Mensajes del botón No (uno por línea)</label>
-        <textarea id="cfg-no-messages" rows="5">No 💔
+        <div class="config-group">
+          <label for="cfg-no-messages">Mensajes del botón No (uno por línea)</label>
+          <textarea id="cfg-no-messages" rows="5">No 💔
 ¿Segura?
 ¿Segurísima? 🥺
 ¿Cómo que no? 😏
 Pensalo bien 💭</textarea>
+        </div>
+
+        <div class="config-group">
+          <label for="cfg-version-steps">Pasos del formulario</label>
+          <p class="field-hint">Un paso por línea: <code>emoji|clave|Título|Subtítulo|gridClass|opción1, opción2</code></p>
+          <textarea id="cfg-version-steps" rows="8">🍽️|food|¿Qué se te antoja?|Elige lo que más te provoque|options-grid|Pizza 🍕, Hamburguesas 🍔
+🕖|time|¿A qué hora te busco mañana?|O si preferís encontrarnos|options-grid|19:00 🕖, 20:00 🕗
+✨|plan|¿Qué onda el plan?|Contame qué te pinta|options-grid|Cenar 🍷, Pasear 🌙
+🌿|vibe|¿Ambiente?|Elige la onda de la salida|options-grid-three|Tranqui 🌿, Animado 🎉</textarea>
+        </div>
       </div>
 
-      <div class="config-group">
-        <label for="cfg-sheets-webhook-url">URL del Web App de Google Sheets</label>
-        <input type="url" id="cfg-sheets-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
-        <p class="field-hint">Opcional. Si la completás, cada respuesta se guarda automáticamente en tu planilla de Google.</p>
+      <div class="config-section">
+        <h3>Integraciones</h3>
+        <div class="config-group">
+          <label for="cfg-telegram-bot-token">Token del bot de Telegram</label>
+          <input type="password" id="cfg-telegram-bot-token" placeholder="123456789:ABC..." autocomplete="off">
+        </div>
+
+        <div class="config-group">
+          <label for="cfg-telegram-chat-id">Chat ID de Telegram</label>
+          <input type="text" id="cfg-telegram-chat-id" placeholder="12345678" autocomplete="off">
+          <p class="field-hint">Escribile a <code>@userinfobot</code> para obtener tu ID, o mirá la URL de un grupo.</p>
+        </div>
+
       </div>
 
       <div class="config-group">
