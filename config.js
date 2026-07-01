@@ -19,8 +19,8 @@ const savedConfig = {
       ],
       "steps": [
         {
-          "key": "food",
           "emoji": "🍽️",
+          "key": "food",
           "title": "¿Qué se te antoja?",
           "subtitle": "Elige lo que más te provoque",
           "gridClass": "options-grid",
@@ -32,8 +32,8 @@ const savedConfig = {
           ]
         },
         {
-          "key": "time",
           "emoji": "🕖",
+          "key": "time",
           "title": "¿A qué hora te busco mañana?",
           "subtitle": "O si preferís encontrarnos",
           "gridClass": "options-grid",
@@ -45,8 +45,8 @@ const savedConfig = {
           ]
         },
         {
-          "key": "plan",
           "emoji": "✨",
+          "key": "plan",
           "title": "¿Qué onda el plan?",
           "subtitle": "Contame qué te pinta",
           "gridClass": "options-grid",
@@ -58,8 +58,8 @@ const savedConfig = {
           ]
         },
         {
-          "key": "vibe",
           "emoji": "🌿",
+          "key": "vibe",
           "title": "¿Ambiente?",
           "subtitle": "Elige la onda de la salida",
           "gridClass": "options-grid-three",
