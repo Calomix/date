@@ -617,8 +617,8 @@ applyConfig();
 
 if (isConfigMode()) {
   showScreen(configScreen);
-  btnEditConfig.style.display = 'flex';
+  btnEditConfig.classList.add('visible');
 } else {
   showScreen(inviteScreen);
-  btnEditConfig.style.display = 'none';
+  btnEditConfig.classList.remove('visible');
 }
