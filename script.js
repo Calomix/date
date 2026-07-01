@@ -122,9 +122,13 @@ function parseNoMessages(text) {
 
 function splitEmojiAndText(option) {
   // Separa el emoji al final del texto (ej: "Pizza 🍕" -> {emoji: "🍕", text: "Pizza"})
-  const match = option.match(/^(.*?)\s*([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])$/u);
+  // Soporta emojis con selector de variación (VS16 \uFE0F), ZWJ sequences y tonos de piel.
+  const emojiRegex = /([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])(?:\uFE0F|\u200D[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]|[\u{1F3FB}-\u{1F3FF}])*$/u;
+  const match = option.match(emojiRegex);
   if (match) {
-    return { emoji: match[2], text: match[1].trim() };
+    const emoji = match[0];
+    const text = option.slice(0, option.length - emoji.length).trim();
+    return { emoji, text };
   }
   return { emoji: '✨', text: option.trim() };
 }
