@@ -74,8 +74,8 @@ const btnYes = document.getElementById('btn-yes');
 const btnNo = document.getElementById('btn-no');
 const btnEditConfig = document.getElementById('btn-edit-config');
 const btnBack = document.getElementById('btn-back');
-const btnShareText = document.getElementById('btn-share-text');
 const btnShareImage = document.getElementById('btn-share-image');
+const btnWhatsApp = document.getElementById('btn-whatsapp');
 const btnRestart = document.getElementById('btn-restart');
 const summaryList = document.getElementById('summary-list');
 const shareCanvas = document.getElementById('share-canvas');
@@ -430,23 +430,29 @@ function buildShareText() {
   return text;
 }
 
-btnShareText.addEventListener('click', async () => {
+btnShareImage.addEventListener('click', async () => {
   try {
-    await shareImage();
+    const shared = await shareImageFile();
+    if (!shared) {
+      // Si el dispositivo no soporta compartir archivos, descargamos y abrimos WhatsApp
+      downloadImage();
+      openWhatsAppDirect();
+    }
   } catch (err) {
     console.error('Error al compartir:', err);
-    fallbackShare();
+    downloadImage();
+    openWhatsAppDirect();
   }
 });
 
-btnShareImage.addEventListener('click', () => {
-  downloadImage();
+btnWhatsApp.addEventListener('click', () => {
+  openWhatsAppDirect();
 });
 
-async function shareImage() {
+async function shareImageFile() {
   const dataUrl = await drawShareImage();
   const blob = dataUrlToBlob(dataUrl);
-  const file = new File([blob], 'nuestra-cita.png', { type: 'image/png' });
+  const file = new File([blob], 'nuestra-cita.png', { type: 'image/png', lastModified: Date.now() });
 
   // Intentar compartir nativamente la imagen (funciona en móviles con HTTPS)
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -455,17 +461,34 @@ async function shareImage() {
       title: 'Nuestra cita 💕',
       text: '¡Así quedó todo! ¿Te parece? 😊'
     });
+    return true;
+  }
+
+  return false;
+}
+
+function isAndroid() {
+  return /android/i.test(navigator.userAgent);
+}
+
+function openWhatsAppDirect() {
+  const text = encodeURIComponent(buildShareText());
+
+  // En Android Chrome podemos usar un intent que abre WhatsApp directamente
+  // (pantalla de contactos, como en la captura 3), pero sin la imagen adjunta
+  // porque una web no puede pasarle un archivo binario a WhatsApp por seguridad.
+  if (isAndroid()) {
+    window.location.href = `intent://send?text=${text}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
     return;
   }
 
-  // Fallback: descargar imagen + abrir WhatsApp con texto
-  fallbackShare();
+  // Fallback para iOS / desktop
+  window.open(`https://wa.me/?text=${text}`, '_blank');
 }
 
 function fallbackShare() {
   downloadImage();
-  const text = encodeURIComponent(buildShareText());
-  window.open(`https://wa.me/?text=${text}`, '_blank');
+  openWhatsAppDirect();
 }
 
 function downloadImage() {
