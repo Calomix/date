@@ -336,43 +336,70 @@ btnDefaultConfig.addEventListener('click', () => {
 // ═══════════════════════════════════════════════════════════════════
 
 function moveNoButton() {
-  const container = inviteScreen.querySelector('.buttons-row');
+  const container = inviteScreen.querySelector('.invite-card');
   const rect = container.getBoundingClientRect();
   const noRect = btnNo.getBoundingClientRect();
   const yesRect = btnYes.getBoundingClientRect();
 
-  const padding = 8;
-  const maxLeft = rect.width - noRect.width - padding * 2;
-  const maxTop = rect.height - noRect.height - padding * 2;
-
-  // Zona que debe evitar el botón No (el botón Sí + un margen de seguridad)
   const margin = 16;
+
+  // Área disponible para que el botón No quede completamente dentro de la tarjeta
+  const minLeft = 0;
+  const minTop = 0;
+  const maxLeft = rect.width - noRect.width;
+  const maxTop = rect.height - noRect.height;
+
+  // Zona que debe evitar el botón No: el botón Sí + un margen de seguridad
   const forbidden = {
-    left: yesRect.left - rect.left - noRect.width - margin,
-    top: yesRect.top - rect.top - noRect.height - margin,
-    right: yesRect.right - rect.left + noRect.width + margin,
-    bottom: yesRect.bottom - rect.top + noRect.height + margin
+    left: yesRect.left - rect.left - margin,
+    top: yesRect.top - rect.top - margin,
+    right: yesRect.right - rect.left + margin,
+    bottom: yesRect.bottom - rect.top + margin
   };
 
   let randomLeft, randomTop;
   let attempts = 0;
-  const maxAttempts = 40;
+  const maxAttempts = 60;
+  let bestPos = null;
+  let bestDistance = -1;
 
   do {
-    randomLeft = Math.random() * maxLeft + padding;
-    randomTop = Math.random() * maxTop + padding;
+    randomLeft = Math.random() * (maxLeft - minLeft) + minLeft;
+    randomTop = Math.random() * (maxTop - minTop) + minTop;
     attempts++;
-  } while (
-    attempts < maxAttempts &&
-    randomLeft < forbidden.right &&
-    randomLeft + noRect.width > forbidden.left &&
-    randomTop < forbidden.bottom &&
-    randomTop + noRect.height > forbidden.top
-  );
+
+    const overlaps = (
+      randomLeft < forbidden.right &&
+      randomLeft + noRect.width > forbidden.left &&
+      randomTop < forbidden.bottom &&
+      randomTop + noRect.height > forbidden.top
+    );
+
+    if (!overlaps) {
+      // Guardar la posición válida más alejada del Sí como respaldo
+      const noCx = randomLeft + noRect.width / 2;
+      const noCy = randomTop + noRect.height / 2;
+      const yesCx = (yesRect.left - rect.left) + yesRect.width / 2;
+      const yesCy = (yesRect.top - rect.top) + yesRect.height / 2;
+      const dist = Math.hypot(noCx - yesCx, noCy - yesCy);
+
+      if (dist > bestDistance) {
+        bestDistance = dist;
+        bestPos = { left: randomLeft, top: randomTop };
+      }
+    }
+  } while (attempts < maxAttempts);
+
+  // Si encontramos al menos una posición válida, usamos la más alejada del Sí.
+  // Si no, caemos en la esquina del contenedor más lejana del Sí para evitar superposición.
+  const finalPos = bestPos || {
+    left: (yesRect.left - rect.left) + yesRect.width / 2 > rect.width / 2 ? minLeft : maxLeft,
+    top: (yesRect.top - rect.top) + yesRect.height / 2 > rect.height / 2 ? minTop : maxTop
+  };
 
   btnNo.style.position = 'absolute';
-  btnNo.style.left = `${randomLeft}px`;
-  btnNo.style.top = `${randomTop}px`;
+  btnNo.style.left = `${finalPos.left}px`;
+  btnNo.style.top = `${finalPos.top}px`;
 
   // Primer mensaje siempre es "No 💔", luego cicla por el resto
   if (noMessageIndex === 0) {

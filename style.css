@@ -103,6 +103,7 @@ body {
 
 .invite-card {
   padding: 40px 28px;
+  position: relative;
 }
 
 .emoji-big {
@@ -145,7 +146,6 @@ h2 {
   align-items: center;
   flex-wrap: wrap;
   min-height: 80px;
-  position: relative;
   padding: 8px 0;
 }
 
