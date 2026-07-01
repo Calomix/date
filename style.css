@@ -606,6 +606,181 @@ textarea:focus {
   min-height: 200px;
 }
 
+.steps-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.step-editor-item {
+  background: #fff;
+  border: 2px solid #f3e5f5;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: left;
+  cursor: grab;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.step-editor-item.dragging {
+  opacity: 0.6;
+  box-shadow: var(--shadow);
+  cursor: grabbing;
+  transform: scale(1.01);
+}
+
+.step-editor-item.drag-over {
+  border-color: var(--lavender-dark);
+  background: #faf5ff;
+}
+
+.step-editor-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.step-editor-emoji {
+  font-size: 1.6rem;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #f3e5f5;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  line-height: 44px;
+}
+
+.step-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step-editor-fields input,
+.step-editor-fields select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #f3e5f5;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+}
+
+.step-editor-fields input:focus,
+.step-editor-fields select:focus {
+  border-color: var(--lavender);
+}
+
+.step-editor-remove {
+  background: #ff7a7a;
+  color: #fff;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-editor-remove:hover {
+  background: #ff5252;
+}
+
+.step-editor-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed #f3e5f5;
+}
+
+.step-editor-options-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.step-editor-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.step-editor-option input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 2px solid #f3e5f5;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+}
+
+.step-editor-option input:focus {
+  border-color: var(--lavender);
+}
+
+.step-editor-option .btn-remove-option {
+  background: transparent;
+  border: none;
+  color: #ff7a7a;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.step-editor-option .btn-remove-option:hover {
+  color: #ff5252;
+}
+
+.btn-add-option {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  padding: 10px;
+  background: #fff;
+  border: 2px solid #f3e5f5;
+  border-radius: 12px;
+  margin-top: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.emoji-picker button {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.emoji-picker button:hover {
+  background: #f3e5f5;
+}
+
 @media (max-width: 480px) {
   .card {
     padding: 28px 20px;

@@ -68,12 +68,10 @@ Pensalo bien 💭</textarea>
         </div>
 
         <div class="config-group">
-          <label for="cfg-version-steps">Pasos del formulario</label>
-          <p class="field-hint">Un paso por línea: <code>emoji|clave|Título|Subtítulo|gridClass|opción1, opción2</code></p>
-          <textarea id="cfg-version-steps" rows="8">🍽️|food|¿Qué se te antoja?|Elige lo que más te provoque|options-grid|Pizza 🍕, Hamburguesas 🍔
-🕖|time|¿A qué hora te busco mañana?|O si preferís encontrarnos|options-grid|19:00 🕖, 20:00 🕗
-✨|plan|¿Qué onda el plan?|Contame qué te pinta|options-grid|Cenar 🍷, Pasear 🌙
-🌿|vibe|¿Ambiente?|Elige la onda de la salida|options-grid-three|Tranqui 🌿, Animado 🎉</textarea>
+          <label>Pasos del formulario</label>
+          <p class="field-hint">Arrastrá los pasos para reordenar. La notita se agrega automáticamente al final.</p>
+          <div id="steps-editor" class="steps-editor"></div>
+          <button type="button" id="btn-add-step" class="btn btn-secondary btn-full">+ Agregar paso</button>
         </div>
       </div>
 

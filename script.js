@@ -163,7 +163,8 @@ const cfgTelegramChatId = document.getElementById('cfg-telegram-chat-id');
 const cfgVersionSelector = document.getElementById('cfg-version-selector');
 const cfgVersionId = document.getElementById('cfg-version-id');
 const cfgVersionName = document.getElementById('cfg-version-name');
-const cfgVersionSteps = document.getElementById('cfg-version-steps');
+const stepsEditor = document.getElementById('steps-editor');
+const btnAddStep = document.getElementById('btn-add-step');
 const btnAddVersion = document.getElementById('btn-add-version');
 const btnDuplicateVersion = document.getElementById('btn-duplicate-version');
 const btnDeleteVersion = document.getElementById('btn-delete-version');
@@ -331,27 +332,6 @@ function showScreen(screen) {
 // Configuración
 // ═══════════════════════════════════════════════════════════════════
 
-function serializeSteps(steps) {
-  return steps.map(step => {
-    return `${step.emoji}|${step.key}|${step.title}|${step.subtitle}|${step.gridClass}|${step.options.join(', ')}`;
-  }).join('\n');
-}
-
-function parseSteps(text) {
-  return text.split('\n').map(line => line.trim()).filter(line => line.length > 0).map(line => {
-    const parts = line.split('|');
-    if (parts.length < 6) return null;
-    return {
-      emoji: parts[0].trim(),
-      key: parts[1].trim(),
-      title: parts[2].trim(),
-      subtitle: parts[3].trim(),
-      gridClass: parts[4].trim(),
-      options: parts.slice(5).join('|').split(',').map(s => s.trim()).filter(s => s.length > 0)
-    };
-  }).filter(Boolean);
-}
-
 function updateVersionSelector() {
   if (!cfgVersionSelector) return;
   cfgVersionSelector.innerHTML = '';
@@ -362,6 +342,252 @@ function updateVersionSelector() {
     if (idx === editingVersionIndex) option.selected = true;
     cfgVersionSelector.appendChild(option);
   });
+}
+
+const EMOJI_LIST = ['🍽️','🕖','✨','🌿','💌','🍕','🍔','🍣','🥗','🥞','🌮','🍝','☕','🍷','🍻','🥂','🍾','🎬','🎵','🎤','🎮','📚','🎨','🎭','🎪','🎉','🎈','🌙','🌳','🏠','🏖️','✈️','🚗','🚲','🛵','🎁','🌹','💖','💕','🫶','😊','🥰','😎','🤔','😏','🥺','💭','❤️','🔥','⭐','🌟','💫','🎯','🎳','🎲','🏓','⚽','🏀','🚶','🧩','🎸','🎹','🎺','🎻'];
+
+function createEmojiPicker(currentEmoji, onSelect) {
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  EMOJI_LIST.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = emoji;
+    btn.title = emoji;
+    if (emoji === currentEmoji) btn.style.background = '#f3e5f5';
+    btn.addEventListener('click', () => onSelect(emoji));
+    picker.appendChild(btn);
+  });
+  return picker;
+}
+
+function createOptionInput(value) {
+  const row = document.createElement('div');
+  row.className = 'step-editor-option';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Opción (ej: Pizza 🍕)';
+  input.value = value || '';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-remove-option';
+  removeBtn.textContent = '×';
+  removeBtn.title = 'Eliminar opción';
+  removeBtn.addEventListener('click', () => row.remove());
+
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  return row;
+}
+
+function updateStepIndices() {
+  if (!stepsEditor) return;
+  Array.from(stepsEditor.children).forEach((child, idx) => {
+    if (child.classList.contains('step-editor-item')) {
+      child.dataset.index = idx;
+    }
+  });
+}
+
+function createStepEditor(step, idx) {
+  const item = document.createElement('div');
+  item.className = 'step-editor-item';
+  item.draggable = true;
+  item.dataset.index = idx;
+  item.dataset.key = step.key || '';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'step-editor-header';
+
+  const emojiBtn = document.createElement('button');
+  emojiBtn.type = 'button';
+  emojiBtn.className = 'step-editor-emoji';
+  emojiBtn.textContent = step.emoji || '✨';
+  emojiBtn.dataset.field = 'emoji';
+  emojiBtn.title = 'Cambiar emoji';
+
+  const fields = document.createElement('div');
+  fields.className = 'step-editor-fields';
+
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.placeholder = 'Título del paso';
+  titleInput.value = step.title || '';
+  titleInput.dataset.field = 'title';
+
+  const subtitleInput = document.createElement('input');
+  subtitleInput.type = 'text';
+  subtitleInput.placeholder = 'Subtítulo';
+  subtitleInput.value = step.subtitle || '';
+  subtitleInput.dataset.field = 'subtitle';
+
+  const gridSelect = document.createElement('select');
+  gridSelect.dataset.field = 'gridClass';
+  [
+    { value: 'options-grid', label: '2 columnas' },
+    { value: 'options-grid-three', label: '3 columnas' },
+    { value: 'options-stack', label: 'Lista vertical' }
+  ].forEach(opt => {
+    const option = document.createElement('option');
+    option.value = opt.value;
+    option.textContent = opt.label;
+    if (opt.value === step.gridClass) option.selected = true;
+    gridSelect.appendChild(option);
+  });
+
+  fields.appendChild(titleInput);
+  fields.appendChild(subtitleInput);
+  fields.appendChild(gridSelect);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'step-editor-remove';
+  removeBtn.textContent = '🗑';
+  removeBtn.title = 'Eliminar paso';
+
+  header.appendChild(emojiBtn);
+  header.appendChild(fields);
+  header.appendChild(removeBtn);
+
+  // Options
+  const optionsContainer = document.createElement('div');
+  optionsContainer.className = 'step-editor-options';
+
+  const optionsLabel = document.createElement('div');
+  optionsLabel.className = 'step-editor-options-label';
+  optionsLabel.textContent = 'Opciones';
+  optionsContainer.appendChild(optionsLabel);
+
+  (step.options || ['']).forEach(opt => {
+    optionsContainer.appendChild(createOptionInput(opt));
+  });
+
+  const addOptionBtn = document.createElement('button');
+  addOptionBtn.type = 'button';
+  addOptionBtn.className = 'btn btn-secondary btn-add-option';
+  addOptionBtn.textContent = '+ Agregar opción';
+  optionsContainer.appendChild(addOptionBtn);
+
+  // Picker container (se llena al hacer click)
+  const pickerContainer = document.createElement('div');
+  pickerContainer.className = 'emoji-picker-container';
+
+  item.appendChild(header);
+  item.appendChild(pickerContainer);
+  item.appendChild(optionsContainer);
+
+  // Events
+  emojiBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const existing = pickerContainer.querySelector('.emoji-picker');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    document.querySelectorAll('.emoji-picker').forEach(p => p.remove());
+    const picker = createEmojiPicker(emojiBtn.textContent, (emoji) => {
+      emojiBtn.textContent = emoji;
+      picker.remove();
+    });
+    pickerContainer.appendChild(picker);
+  });
+
+  removeBtn.addEventListener('click', () => {
+    item.remove();
+    updateStepIndices();
+  });
+
+  addOptionBtn.addEventListener('click', () => {
+    const optEl = createOptionInput('');
+    optionsContainer.insertBefore(optEl, addOptionBtn);
+    optEl.querySelector('input').focus();
+  });
+
+  // Drag and drop
+  item.addEventListener('dragstart', (e) => {
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.dataset.index);
+  });
+
+  item.addEventListener('dragend', () => {
+    item.classList.remove('dragging');
+    document.querySelectorAll('.step-editor-item').forEach(el => el.classList.remove('drag-over'));
+    updateStepIndices();
+  });
+
+  item.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    item.classList.add('drag-over');
+  });
+
+  item.addEventListener('dragleave', () => {
+    item.classList.remove('drag-over');
+  });
+
+  item.addEventListener('drop', (e) => {
+    e.preventDefault();
+    item.classList.remove('drag-over');
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    const toIndex = parseInt(item.dataset.index, 10);
+    if (isNaN(fromIndex) || isNaN(toIndex) || fromIndex === toIndex) return;
+
+    const items = Array.from(stepsEditor.querySelectorAll('.step-editor-item'));
+    const fromEl = items[fromIndex];
+    if (!fromEl) return;
+
+    if (toIndex > fromIndex) {
+      item.parentNode.insertBefore(fromEl, item.nextSibling);
+    } else {
+      item.parentNode.insertBefore(fromEl, item);
+    }
+    updateStepIndices();
+  });
+
+  return item;
+}
+
+function renderStepsEditor() {
+  if (!stepsEditor) return;
+  stepsEditor.innerHTML = '';
+  const version = config.versions[editingVersionIndex] || config.versions[0];
+  const steps = version.steps || [];
+  steps.forEach((step, idx) => {
+    stepsEditor.appendChild(createStepEditor(step, idx));
+  });
+}
+
+function readStepsFromEditor() {
+  if (!stepsEditor) return [];
+  const steps = [];
+  Array.from(stepsEditor.querySelectorAll('.step-editor-item')).forEach(child => {
+    const emojiEl = child.querySelector('[data-field="emoji"]');
+    const titleEl = child.querySelector('[data-field="title"]');
+    const subtitleEl = child.querySelector('[data-field="subtitle"]');
+    const gridClassEl = child.querySelector('[data-field="gridClass"]');
+
+    const title = titleEl ? titleEl.value.trim() : '';
+    if (!title) return;
+
+    const options = [];
+    child.querySelectorAll('.step-editor-option input').forEach(input => {
+      if (input.value.trim()) options.push(input.value.trim());
+    });
+
+    steps.push({
+      key: child.dataset.key || `step_${Math.random().toString(36).substr(2, 8)}`,
+      emoji: emojiEl ? emojiEl.textContent.trim() : '✨',
+      title,
+      subtitle: subtitleEl ? subtitleEl.value.trim() : '',
+      gridClass: gridClassEl ? gridClassEl.value : 'options-grid',
+      options: options.length ? options : ['']
+    });
+  });
+  return steps;
 }
 
 function fillConfigForm() {
@@ -375,10 +601,10 @@ function fillConfigForm() {
   cfgTelegramChatId.value = config.telegramChatId || '';
   cfgVersionId.value = version.id;
   cfgVersionName.value = version.name;
-  cfgVersionSteps.value = serializeSteps(version.steps);
   cfgGitHubToken.value = loadGitHubToken() || '';
 
   updateVersionSelector();
+  renderStepsEditor();
 }
 
 function readConfigForm() {
@@ -390,7 +616,7 @@ function readConfigForm() {
   version.inviteSubtitle = cfgInviteSubtitle.value.trim() || defaultVersion.inviteSubtitle;
   version.notePlaceholder = cfgNotePlaceholder.value.trim() || defaultVersion.notePlaceholder;
   version.noMessages = parseNoMessages(cfgNoMessages.value);
-  version.steps = parseSteps(cfgVersionSteps.value);
+  version.steps = readStepsFromEditor();
 
   return {
     telegramBotToken: cfgTelegramBotToken.value.trim(),
@@ -507,6 +733,22 @@ if (btnDeleteVersion) {
     editingVersionIndex = Math.max(0, editingVersionIndex - 1);
     fillConfigForm();
   });
+
+  if (btnAddStep) {
+    btnAddStep.addEventListener('click', () => {
+      const stepEl = createStepEditor({
+        emoji: '✨',
+        title: '',
+        subtitle: '',
+        gridClass: 'options-grid',
+        options: ['']
+      }, stepsEditor ? stepsEditor.children.length : 0);
+      if (stepsEditor) {
+        stepsEditor.appendChild(stepEl);
+        stepEl.querySelector('[data-field="title"]')?.focus();
+      }
+    });
+  }
 }
 
 
