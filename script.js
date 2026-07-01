@@ -606,18 +606,34 @@ function buildSummary() {
   `).join('');
 }
 
+function formatDate(date) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
 async function saveResponseToSheet() {
   const url = config.sheetsWebhookUrl?.trim();
-  if (!url) return;
+  if (!url) {
+    console.log('[Sheets] No hay URL configurada.');
+    return;
+  }
 
   const payload = {
-    date: new Date().toISOString(),
+    date: formatDate(new Date()),
     food: selections.food || '',
     time: selections.time || '',
     plan: selections.plan || '',
     vibe: selections.vibe || '',
     note: document.getElementById('note')?.value.trim() || ''
   };
+
+  console.log('[Sheets] Enviando a:', url);
+  console.log('[Sheets] Payload:', payload);
 
   try {
     const response = await fetch(url, {
@@ -626,11 +642,15 @@ async function saveResponseToSheet() {
       body: JSON.stringify(payload)
     });
 
+    console.log('[Sheets] Status:', response.status);
+    const text = await response.text();
+    console.log('[Sheets] Respuesta:', text);
+
     if (!response.ok) {
-      console.warn('Respuesta no OK al guardar en Sheets:', response.status);
+      console.warn('[Sheets] Respuesta no OK:', response.status);
     }
   } catch (err) {
-    console.error('Error guardando respuesta en Sheets:', err);
+    console.error('[Sheets] Error de red:', err);
   }
 }
 
