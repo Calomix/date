@@ -96,9 +96,8 @@ function migrateConfig(input) {
 
 let config = migrateConfig(loadSavedConfig() || loadConfig() || { ...defaultConfig });
 let activeVersion = getActiveVersion();
-let versionExplicitlySelected = hasVersionParam();
 let selections = {};
-(activeVersion.steps || []).forEach(step => selections[step.key] = null);
+((activeVersion || getDefaultVersion()).steps || []).forEach(step => selections[step.key] = null);
 let currentStep = 0;
 let noMessageIndex = 0;
 let editingVersionIndex = 0;
@@ -115,6 +114,9 @@ function getActiveVersion() {
   const versionId = params.get('v');
   const versionName = params.get('n');
 
+  // Si no se especifica versión, no se muestra ningún formulario
+  if (!versionId && !versionName) return null;
+
   if (versionId && config.versions) {
     const found = config.versions.find(v => v.id === versionId);
     if (found) return found;
@@ -126,6 +128,11 @@ function getActiveVersion() {
     if (found) return found;
   }
 
+  // Versión solicitada pero no encontrada -> tampoco se muestra formulario
+  return null;
+}
+
+function getDefaultVersion() {
   return config.versions?.[0] || JSON.parse(JSON.stringify(defaultVersion));
 }
 
@@ -398,9 +405,8 @@ function renderTemplate(text, version) {
 
 function applyConfig() {
   activeVersion = getActiveVersion();
-  versionExplicitlySelected = hasVersionParam();
 
-  if (versionExplicitlySelected || isConfigMode()) {
+  if (activeVersion) {
     inviteTitle.textContent = renderTemplate(activeVersion.inviteTitle, activeVersion);
     inviteSubtitle.textContent = renderTemplate(activeVersion.inviteSubtitle, activeVersion);
     generateWizard();
@@ -607,9 +613,10 @@ btnNo.addEventListener('click', (e) => {
 
 btnYes.addEventListener('click', () => {
   activeVersion = getActiveVersion();
+  if (!activeVersion) return;
   currentStep = 0;
   selections = {};
-  activeVersion.steps.forEach(step => selections[step.key] = null);
+  (activeVersion.steps || []).forEach(step => selections[step.key] = null);
   updateWizard();
   showScreen(detailsScreen);
 });
@@ -676,7 +683,7 @@ function generateWizard() {
     <p class="subtitle">Opcional, pero me encantaría leerte</p>
     <textarea id="note" rows="4" maxlength="200" placeholder="${escapeHtml(activeVersion.notePlaceholder)}"></textarea>
     <div class="char-counter" id="note-counter">0/200</div>
-    <button id="btn-summary" class="btn btn-primary">Ver resumen 💕</button>
+    <button id="btn-summary" class="btn btn-primary">Enviar y ver resumen 💕</button>
   `;
   stepsContainer.appendChild(noteStep);
 
@@ -1249,8 +1256,10 @@ fillConfigForm();
 applyConfig();
 
 if (isConfigMode()) {
+  activeVersion = getDefaultVersion();
+  generateWizard();
   showScreen(configScreen);
-} else if (versionExplicitlySelected) {
+} else if (activeVersion) {
   showScreen(inviteScreen);
 } else {
   showScreen(landingScreen);
