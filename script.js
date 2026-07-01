@@ -344,31 +344,535 @@ function updateVersionSelector() {
   });
 }
 
-const EMOJI_LIST = ['🍽️','🕖','✨','🌿','💌','🍕','🍔','🍣','🥗','🥞','🌮','🍝','☕','🍷','🍻','🥂','🍾','🎬','🎵','🎤','🎮','📚','🎨','🎭','🎪','🎉','🎈','🌙','🌳','🏠','🏖️','✈️','🚗','🚲','🛵','🎁','🌹','💖','💕','🫶','😊','🥰','😎','🤔','😏','🥺','💭','❤️','🔥','⭐','🌟','💫','🎯','🎳','🎲','🏓','⚽','🏀','🚶','🧩','🎸','🎹','🎺','🎻'];
+const EMOJI_LIST = [
+  { emoji: '🍽️', keywords: 'comer cena plato' },
+  { emoji: '🍕', keywords: 'pizza comida' },
+  { emoji: '🍔', keywords: 'hamburguesa comida' },
+  { emoji: '🍟', keywords: 'papas fritas comida' },
+  { emoji: '🌭', keywords: 'perrito caliente comida' },
+  { emoji: '🍿', keywords: 'pochoclo cine' },
+  { emoji: '🧂', keywords: 'sal' },
+  { emoji: '🥐', keywords: 'croissant pan' },
+  { emoji: '🥖', keywords: 'pan baguette' },
+  { emoji: '🥨', keywords: 'pretzel' },
+  { emoji: '🥯', keywords: 'bagel' },
+  { emoji: '🥞', keywords: 'panqueques desayuno' },
+  { emoji: '🧇', keywords: 'waffle' },
+  { emoji: '🧀', keywords: 'queso' },
+  { emoji: '🍖', keywords: 'carne' },
+  { emoji: '🍗', keywords: 'pollo' },
+  { emoji: '🥩', keywords: 'bife carne' },
+  { emoji: '🥓', keywords: 'panceta' },
+  { emoji: '🥪', keywords: 'sandwich' },
+  { emoji: '🌮', keywords: 'taco mexicano' },
+  { emoji: '🌯', keywords: 'burrito mexicano' },
+  { emoji: '🫔', keywords: 'tamal' },
+  { emoji: '🥙', keywords: 'kebab' },
+  { emoji: '🧆', keywords: 'falafel' },
+  { emoji: '🥚', keywords: 'huevo' },
+  { emoji: '🍳', keywords: 'huevos cocinar' },
+  { emoji: '🥘', keywords: 'paella' },
+  { emoji: '🍲', keywords: 'sopa' },
+  { emoji: '🫕', keywords: 'fondue' },
+  { emoji: '🥣', keywords: 'bowl' },
+  { emoji: '🥗', keywords: 'ensalada' },
+  { emoji: '🧈', keywords: 'manteca' },
+  { emoji: '🥫', keywords: 'lata' },
+  { emoji: '🍱', keywords: 'bento sushi' },
+  { emoji: '🍘', keywords: 'galleta arroz' },
+  { emoji: '🍙', keywords: 'onigiri' },
+  { emoji: '🍚', keywords: 'arroz' },
+  { emoji: '🍛', keywords: 'curry' },
+  { emoji: '🍜', keywords: 'ramen fideos' },
+  { emoji: '🍝', keywords: 'fideos pasta' },
+  { emoji: '🍠', keywords: 'batata' },
+  { emoji: '🍢', keywords: 'oden' },
+  { emoji: '🍣', keywords: 'sushi' },
+  { emoji: '🍤', keywords: 'langostino' },
+  { emoji: '🍥', keywords: 'narutomaki' },
+  { emoji: '🥮', keywords: 'pastel luna' },
+  { emoji: '🍡', keywords: 'dango' },
+  { emoji: '🥟', keywords: 'empanada gyoza' },
+  { emoji: '🥠', keywords: 'galleta suerte' },
+  { emoji: '🥡', keywords: 'comida china para llevar' },
+  { emoji: '🍦', keywords: 'helado' },
+  { emoji: '🍧', keywords: 'raspado hielo' },
+  { emoji: '🍨', keywords: 'helado' },
+  { emoji: '🍩', keywords: 'donut' },
+  { emoji: '🍪', keywords: 'galleta' },
+  { emoji: '🎂', keywords: 'torta cumpleaños' },
+  { emoji: '🍰', keywords: 'pastel torta' },
+  { emoji: '🧁', keywords: 'cupcake' },
+  { emoji: '🥧', keywords: 'tarta' },
+  { emoji: '🍫', keywords: 'chocolate' },
+  { emoji: '🍬', keywords: 'caramelo' },
+  { emoji: '🍭', keywords: 'chupetin' },
+  { emoji: '🍮', keywords: 'flan' },
+  { emoji: '🍯', keywords: 'miel' },
+  { emoji: '🍼', keywords: 'mamadera' },
+  { emoji: '🥛', keywords: 'leche' },
+  { emoji: '☕', keywords: 'cafe' },
+  { emoji: '🫖', keywords: 'te' },
+  { emoji: '🍵', keywords: 'te' },
+  { emoji: '🍶', keywords: 'sake' },
+  { emoji: '🍾', keywords: 'champagne celebrar' },
+  { emoji: '🍷', keywords: 'vino' },
+  { emoji: '🍸', keywords: 'coctel' },
+  { emoji: '🍹', keywords: 'trago' },
+  { emoji: '🍺', keywords: 'cerveza' },
+  { emoji: '🍻', keywords: 'cerveza brindis' },
+  { emoji: '🥂', keywords: 'brindis copa' },
+  { emoji: '🥃', keywords: 'whisky' },
+  { emoji: '🫗', keywords: 'verter' },
+  { emoji: '🥤', keywords: 'vaso' },
+  { emoji: '🧋', keywords: 'bubble tea' },
+  { emoji: '🧃', keywords: 'jugo' },
+  { emoji: '🧉', keywords: 'mate' },
+  { emoji: '🍴', keywords: 'cubiertos' },
+  { emoji: '🥄', keywords: 'cuchara' },
+  { emoji: '🎬', keywords: 'cine pelicula' },
+  { emoji: '🎤', keywords: 'karaoke cantar' },
+  { emoji: '🎧', keywords: 'musica auriculares' },
+  { emoji: '🎼', keywords: 'musica partitura' },
+  { emoji: '🎵', keywords: 'musica nota' },
+  { emoji: '🎶', keywords: 'musica notas' },
+  { emoji: '🎹', keywords: 'piano' },
+  { emoji: '🥁', keywords: 'bateria' },
+  { emoji: '🎷', keywords: 'saxo' },
+  { emoji: '🎸', keywords: 'guitarra' },
+  { emoji: '🎺', keywords: 'trompeta' },
+  { emoji: '🎻', keywords: 'violin' },
+  { emoji: '🎮', keywords: 'juego videojuego' },
+  { emoji: '🕹️', keywords: 'joystick' },
+  { emoji: '🎰', keywords: 'casino' },
+  { emoji: '🎲', keywords: 'dado' },
+  { emoji: '🧩', keywords: 'rompecabezas' },
+  { emoji: '🧸', keywords: 'oso peluche' },
+  { emoji: '🪀', keywords: 'yoyo' },
+  { emoji: '🎯', keywords: 'diana' },
+  { emoji: '🎳', keywords: 'bowling' },
+  { emoji: '🏓', keywords: 'ping pong' },
+  { emoji: '🏸', keywords: 'badminton' },
+  { emoji: '🥊', keywords: 'boxeo' },
+  { emoji: '🥋', keywords: 'karate' },
+  { emoji: '⛸️', keywords: 'patinaje hielo' },
+  { emoji: '🎣', keywords: 'pesca' },
+  { emoji: '🎨', keywords: 'pintura arte' },
+  { emoji: '🎭', keywords: 'teatro mascara' },
+  { emoji: '🎪', keywords: 'circo' },
+  { emoji: '🎢', keywords: 'montaña rusa' },
+  { emoji: '🎡', keywords: 'rueda' },
+  { emoji: '🎠', keywords: 'calesita' },
+  { emoji: '🏖️', keywords: 'playa' },
+  { emoji: '🏝️', keywords: 'isla' },
+  { emoji: '🏜️', keywords: 'desierto' },
+  { emoji: '🌋', keywords: 'volcan' },
+  { emoji: '⛰️', keywords: 'montaña' },
+  { emoji: '🏕️', keywords: 'camping' },
+  { emoji: '🏠', keywords: 'casa' },
+  { emoji: '🏡', keywords: 'casa jardin' },
+  { emoji: '🏩', keywords: 'hotel amor' },
+  { emoji: '🏨', keywords: 'hotel' },
+  { emoji: '⛪', keywords: 'iglesia' },
+  { emoji: '🕌', keywords: 'mezquita' },
+  { emoji: '🛕', keywords: 'templo' },
+  { emoji: '🕍', keywords: 'sinagoga' },
+  { emoji: '⛩️', keywords: 'santuario' },
+  { emoji: '🌃', keywords: 'noche ciudad' },
+  { emoji: '🌆', keywords: 'atardecer ciudad' },
+  { emoji: '🌇', keywords: 'atardecer' },
+  { emoji: '🌉', keywords: 'puente noche' },
+  { emoji: '♨️', keywords: 'aguas termales' },
+  { emoji: '🎑', keywords: 'luna' },
+  { emoji: '💈', keywords: 'barberia' },
+  { emoji: '🚗', keywords: 'auto' },
+  { emoji: '🚕', keywords: 'taxi' },
+  { emoji: '🚙', keywords: 'camioneta' },
+  { emoji: '🚌', keywords: 'colectivo' },
+  { emoji: '🚎', keywords: 'trolebus' },
+  { emoji: '🏎️', keywords: 'auto carrera' },
+  { emoji: '🚓', keywords: 'policia' },
+  { emoji: '🚑', keywords: 'ambulancia' },
+  { emoji: '🚒', keywords: 'bomberos' },
+  { emoji: '🚐', keywords: 'van' },
+  { emoji: '🚚', keywords: 'camion' },
+  { emoji: '🚜', keywords: 'tractor' },
+  { emoji: '🛵', keywords: 'moto scooter' },
+  { emoji: '🏍️', keywords: 'moto' },
+  { emoji: '🚲', keywords: 'bicicleta' },
+  { emoji: '🛴', keywords: 'monopatin' },
+  { emoji: '🚂', keywords: 'tren' },
+  { emoji: '🚆', keywords: 'tren' },
+  { emoji: '🚇', keywords: 'subte' },
+  { emoji: '🚊', keywords: 'tren' },
+  { emoji: '🚉', keywords: 'estacion' },
+  { emoji: '✈️', keywords: 'avion' },
+  { emoji: '🛫', keywords: 'despegue' },
+  { emoji: '🛬', keywords: 'aterrizaje' },
+  { emoji: '🚁', keywords: 'helicoptero' },
+  { emoji: '🚀', keywords: 'cohete' },
+  { emoji: '🛸', keywords: 'ovni' },
+  { emoji: '🚤', keywords: 'lancha' },
+  { emoji: '⛵', keywords: 'velero' },
+  { emoji: '🛳️', keywords: 'crucero' },
+  { emoji: '⛴️', keywords: 'ferry' },
+  { emoji: '🛥️', keywords: 'yate' },
+  { emoji: '⚓', keywords: 'ancla' },
+  { emoji: '🚦', keywords: 'semaforo' },
+  { emoji: '🚥', keywords: 'semaforo' },
+  { emoji: '🚧', keywords: 'obras' },
+  { emoji: '🌳', keywords: 'arbol' },
+  { emoji: '🌲', keywords: 'pino' },
+  { emoji: '🌴', keywords: 'palmera' },
+  { emoji: '🌵', keywords: 'cactus' },
+  { emoji: '🌷', keywords: 'tulipan' },
+  { emoji: '🌹', keywords: 'rosa' },
+  { emoji: '🥀', keywords: 'rosa marchita' },
+  { emoji: '🌺', keywords: 'flor' },
+  { emoji: '🌸', keywords: 'cerezo flor' },
+  { emoji: '🌼', keywords: 'flor' },
+  { emoji: '🌻', keywords: 'girasol' },
+  { emoji: '🌞', keywords: 'sol' },
+  { emoji: '🌝', keywords: 'luna llena' },
+  { emoji: '🌛', keywords: 'luna' },
+  { emoji: '🌜', keywords: 'luna' },
+  { emoji: '🌚', keywords: 'luna nueva' },
+  { emoji: '🌕', keywords: 'luna' },
+  { emoji: '🌖', keywords: 'luna' },
+  { emoji: '🌗', keywords: 'luna' },
+  { emoji: '🌘', keywords: 'luna' },
+  { emoji: '🌑', keywords: 'luna' },
+  { emoji: '🌒', keywords: 'luna' },
+  { emoji: '🌓', keywords: 'luna' },
+  { emoji: '🌔', keywords: 'luna' },
+  { emoji: '🌙', keywords: 'luna' },
+  { emoji: '🌎', keywords: 'mundo' },
+  { emoji: '🌍', keywords: 'mundo' },
+  { emoji: '🌏', keywords: 'mundo' },
+  { emoji: '💫', keywords: 'estrella' },
+  { emoji: '⭐', keywords: 'estrella' },
+  { emoji: '🌟', keywords: 'estrella brillante' },
+  { emoji: '✨', keywords: 'brillo' },
+  { emoji: '⚡', keywords: 'rayo' },
+  { emoji: '🔥', keywords: 'fuego' },
+  { emoji: '💥', keywords: 'explosion' },
+  { emoji: '☀️', keywords: 'sol' },
+  { emoji: '🌤️', keywords: 'sol nube' },
+  { emoji: '⛅', keywords: 'nublado' },
+  { emoji: '🌦️', keywords: 'lluvia sol' },
+  { emoji: '🌧️', keywords: 'lluvia' },
+  { emoji: '⛈️', keywords: 'tormenta' },
+  { emoji: '🌩️', keywords: 'trueno' },
+  { emoji: '🌨️', keywords: 'nieve' },
+  { emoji: '❄️', keywords: 'nieve' },
+  { emoji: '☃️', keywords: 'muñeco nieve' },
+  { emoji: '⛄', keywords: 'muñeco nieve' },
+  { emoji: '🌬️', keywords: 'viento' },
+  { emoji: '💨', keywords: 'viento' },
+  { emoji: '☁️', keywords: 'nube' },
+  { emoji: '🌈', keywords: 'arcoiris' },
+  { emoji: '☂️', keywords: 'paraguas' },
+  { emoji: '☔', keywords: 'lluvia paraguas' },
+  { emoji: '💧', keywords: 'gota' },
+  { emoji: '💦', keywords: 'agua' },
+  { emoji: '🌊', keywords: 'ola mar' },
+  { emoji: '❤️', keywords: 'corazon amor' },
+  { emoji: '🧡', keywords: 'corazon naranja' },
+  { emoji: '💛', keywords: 'corazon amarillo' },
+  { emoji: '💚', keywords: 'corazon verde' },
+  { emoji: '💙', keywords: 'corazon azul' },
+  { emoji: '💜', keywords: 'corazon violeta' },
+  { emoji: '🖤', keywords: 'corazon negro' },
+  { emoji: '🤍', keywords: 'corazon blanco' },
+  { emoji: '🤎', keywords: 'corazon marron' },
+  { emoji: '💗', keywords: 'corazon' },
+  { emoji: '💖', keywords: 'corazon brillante' },
+  { emoji: '💕', keywords: 'corazones' },
+  { emoji: '💞', keywords: 'corazones' },
+  { emoji: '💓', keywords: 'corazon' },
+  { emoji: '💘', keywords: 'corazon flecha' },
+  { emoji: '💝', keywords: 'corazon regalo' },
+  { emoji: '💟', keywords: 'corazon' },
+  { emoji: '💌', keywords: 'carta amor' },
+  { emoji: '🫶', keywords: 'corazones manos' },
+  { emoji: '❣️', keywords: 'corazon exclamacion' },
+  { emoji: '💋', keywords: 'beso' },
+  { emoji: '😊', keywords: 'feliz' },
+  { emoji: '🥰', keywords: 'amor' },
+  { emoji: '😍', keywords: 'encanto' },
+  { emoji: '🤩', keywords: 'estrella' },
+  { emoji: '😘', keywords: 'beso' },
+  { emoji: '😗', keywords: 'beso' },
+  { emoji: '☺️', keywords: 'sonrisa' },
+  { emoji: '😚', keywords: 'beso' },
+  { emoji: '😙', keywords: 'beso' },
+  { emoji: '😋', keywords: 'rico' },
+  { emoji: '😛', keywords: 'lengua' },
+  { emoji: '😜', keywords: 'travieso' },
+  { emoji: '🤪', keywords: 'loco' },
+  { emoji: '😝', keywords: 'lengua' },
+  { emoji: '🤑', keywords: 'dinero' },
+  { emoji: '🤗', keywords: 'abrazo' },
+  { emoji: '🤭', keywords: 'risa' },
+  { emoji: '🫢', keywords: 'sorpresa' },
+  { emoji: '🫣', keywords: 'ojo' },
+  { emoji: '🤫', keywords: 'silencio' },
+  { emoji: '🤔', keywords: 'pensar' },
+  { emoji: '🫡', keywords: 'saludo' },
+  { emoji: '🤐', keywords: 'callado' },
+  { emoji: '🤨', keywords: 'duda' },
+  { emoji: '😐', keywords: 'neutral' },
+  { emoji: '😑', keywords: 'serio' },
+  { emoji: '😶', keywords: 'silencio' },
+  { emoji: '😏', keywords: 'picaro' },
+  { emoji: '😒', keywords: 'enojado' },
+  { emoji: '🙄', keywords: 'ojos' },
+  { emoji: '😬', keywords: 'nervioso' },
+  { emoji: '🤥', keywords: 'mentira' },
+  { emoji: '😔', keywords: 'triste' },
+  { emoji: '😟', keywords: 'preocupado' },
+  { emoji: '😕', keywords: 'confundido' },
+  { emoji: '🙁', keywords: 'triste' },
+  { emoji: '☹️', keywords: 'triste' },
+  { emoji: '😣', keywords: 'sufrimiento' },
+  { emoji: '😖', keywords: 'angustia' },
+  { emoji: '😫', keywords: 'cansado' },
+  { emoji: '😩', keywords: 'cansado' },
+  { emoji: '🥺', keywords: 'suplica' },
+  { emoji: '😢', keywords: 'llorar' },
+  { emoji: '😭', keywords: 'llorar mucho' },
+  { emoji: '😤', keywords: 'enojado' },
+  { emoji: '😠', keywords: 'enojado' },
+  { emoji: '😡', keywords: 'furioso' },
+  { emoji: '🤬', keywords: 'insulto' },
+  { emoji: '😳', keywords: 'sonrojo' },
+  { emoji: '🥵', keywords: 'calor' },
+  { emoji: '🥶', keywords: 'frio' },
+  { emoji: '😱', keywords: 'susto' },
+  { emoji: '😨', keywords: 'miedo' },
+  { emoji: '😰', keywords: 'nervioso' },
+  { emoji: '😥', keywords: 'aliviado' },
+  { emoji: '😓', keywords: 'sudor' },
+  { emoji: '⌚', keywords: 'reloj' },
+  { emoji: '🕖', keywords: 'siete hora' },
+  { emoji: '🕗', keywords: 'ocho hora' },
+  { emoji: '🕘', keywords: 'nueve hora' },
+  { emoji: '🕙', keywords: 'diez hora' },
+  { emoji: '🕚', keywords: 'once hora' },
+  { emoji: '🕛', keywords: 'doce hora' },
+  { emoji: '🕜', keywords: 'hora' },
+  { emoji: '🕝', keywords: 'hora' },
+  { emoji: '🕞', keywords: 'hora' },
+  { emoji: '🕟', keywords: 'hora' },
+  { emoji: '🕠', keywords: 'hora' },
+  { emoji: '🕡', keywords: 'hora' },
+  { emoji: '🕢', keywords: 'hora' },
+  { emoji: '🕣', keywords: 'ocho y media hora' },
+  { emoji: '🕤', keywords: 'hora' },
+  { emoji: '🕥', keywords: 'hora' },
+  { emoji: '🕦', keywords: 'hora' },
+  { emoji: '🕧', keywords: 'hora' },
+  { emoji: '⏰', keywords: 'despertador' },
+  { emoji: '📱', keywords: 'celular' },
+  { emoji: '💻', keywords: 'computadora' },
+  { emoji: '📷', keywords: 'camara' },
+  { emoji: '📸', keywords: 'camara foto' },
+  { emoji: '📹', keywords: 'video' },
+  { emoji: '🎥', keywords: 'camara cine' },
+  { emoji: '📽️', keywords: 'proyector' },
+  { emoji: '🎞️', keywords: 'pelicula' },
+  { emoji: '📞', keywords: 'telefono' },
+  { emoji: '☎️', keywords: 'telefono' },
+  { emoji: '📟', keywords: 'bip' },
+  { emoji: '📠', keywords: 'fax' },
+  { emoji: '📺', keywords: 'tele' },
+  { emoji: '📻', keywords: 'radio' },
+  { emoji: '🎙️', keywords: 'microfono' },
+  { emoji: '🎚️', keywords: 'volumen' },
+  { emoji: '🎛️', keywords: 'perillas' },
+  { emoji: '🧭', keywords: 'brujula' },
+  { emoji: '⏱️', keywords: 'cronometro' },
+  { emoji: '⏲️', keywords: 'temporizador' },
+  { emoji: '⏳', keywords: 'reloj arena' },
+  { emoji: '💡', keywords: 'lampara idea' },
+  { emoji: '🔦', keywords: 'linterna' },
+  { emoji: '🕯️', keywords: 'vela' },
+  { emoji: '🪔', keywords: 'lampara' },
+  { emoji: '🧯', keywords: 'matafuego' },
+  { emoji: '🛢️', keywords: 'barril' },
+  { emoji: '💸', keywords: 'dinero' },
+  { emoji: '💵', keywords: 'dinero' },
+  { emoji: '💴', keywords: 'dinero' },
+  { emoji: '💶', keywords: 'dinero' },
+  { emoji: '💷', keywords: 'dinero' },
+  { emoji: '💰', keywords: 'dinero' },
+  { emoji: '💳', keywords: 'tarjeta' },
+  { emoji: '💎', keywords: 'diamante' },
+  { emoji: '⚖️', keywords: 'balanza' },
+  { emoji: '🧰', keywords: 'caja herramientas' },
+  { emoji: '🔧', keywords: 'llave inglesa' },
+  { emoji: '🔨', keywords: 'martillo' },
+  { emoji: '⚒️', keywords: 'herramientas' },
+  { emoji: '🛠️', keywords: 'herramientas' },
+  { emoji: '🧲', keywords: 'iman' },
+  { emoji: '🧪', keywords: 'tubo ensayo' },
+  { emoji: '🧫', keywords: 'placa petri' },
+  { emoji: '🧬', keywords: 'adn' },
+  { emoji: '🔬', keywords: 'microscopio' },
+  { emoji: '🔭', keywords: 'telescopio' },
+  { emoji: '📡', keywords: 'antena' },
+  { emoji: '💉', keywords: 'jeringa' },
+  { emoji: '🩸', keywords: 'sangre' },
+  { emoji: '💊', keywords: 'pastilla' },
+  { emoji: '🩹', keywords: 'curita' },
+  { emoji: '🩺', keywords: 'fonendoscopio' },
+  { emoji: '🌡️', keywords: 'termometro' },
+  { emoji: '🚽', keywords: 'inodoro' },
+  { emoji: '🚿', keywords: 'ducha' },
+  { emoji: '🛁', keywords: 'bañera' },
+  { emoji: '🪥', keywords: 'cepillo dientes' },
+  { emoji: '🪒', keywords: 'maquina afeitar' },
+  { emoji: '🧴', keywords: 'crema' },
+  { emoji: '🧷', keywords: 'alfiler' },
+  { emoji: '🧹', keywords: 'escoba' },
+  { emoji: '🧺', keywords: 'canasto' },
+  { emoji: '🧻', keywords: 'papel higienico' },
+  { emoji: '🧼', keywords: 'jabon' },
+  { emoji: '🧽', keywords: 'esponja' },
+  { emoji: '🛒', keywords: 'carrito compras' },
+  { emoji: '🚬', keywords: 'cigarrillo' },
+  { emoji: '⚰️', keywords: 'ataud' },
+  { emoji: '🪦', keywords: 'lapida' },
+  { emoji: '⚱️', keywords: 'urna' },
+  { emoji: '🗿', keywords: 'moai' },
+  { emoji: '🪧', keywords: 'cartel' },
+  { emoji: '🏧', keywords: 'cajero' },
+  { emoji: '💭', keywords: 'pensamiento' },
+  { emoji: '💬', keywords: 'globo dialogo' },
+  { emoji: '💯', keywords: 'cien' },
+  { emoji: '✅', keywords: 'check ok' },
+  { emoji: '❌', keywords: 'cruz no' },
+  { emoji: '❓', keywords: 'pregunta' },
+  { emoji: '❗', keywords: 'exclamacion' },
+  { emoji: '⭕', keywords: 'circulo' },
+  { emoji: '🚫', keywords: 'prohibido' },
+  { emoji: '💢', keywords: 'enojo' },
+  { emoji: '📛', keywords: 'nombre' },
+  { emoji: '🚷', keywords: 'prohibido peatones' },
+  { emoji: '🚯', keywords: 'no basura' },
+  { emoji: '🚳', keywords: 'no bicicleta' },
+  { emoji: '🚱', keywords: 'agua no potable' },
+  { emoji: '📵', keywords: 'no celular' },
+  { emoji: '🔞', keywords: 'mayores' },
+  { emoji: '☢️', keywords: 'radiactivo' },
+  { emoji: '☣️', keywords: 'riesgo biologico' },
+  { emoji: '⬆️', keywords: 'arriba' },
+  { emoji: '↗️', keywords: 'arriba derecha' },
+  { emoji: '➡️', keywords: 'derecha' },
+  { emoji: '↘️', keywords: 'abajo derecha' },
+  { emoji: '⬇️', keywords: 'abajo' },
+  { emoji: '↙️', keywords: 'abajo izquierda' },
+  { emoji: '⬅️', keywords: 'izquierda' },
+  { emoji: '↖️', keywords: 'arriba izquierda' },
+  { emoji: '↕️', keywords: 'arriba abajo' },
+  { emoji: '↔️', keywords: 'izquierda derecha' },
+  { emoji: '↩️', keywords: 'volver' },
+  { emoji: '↪️', keywords: 'retornar' },
+  { emoji: '⤴️', keywords: 'curva arriba' },
+  { emoji: '⤵️', keywords: 'curva abajo' },
+  { emoji: '🔀', keywords: 'aleatorio' },
+  { emoji: '🔁', keywords: 'repetir' },
+  { emoji: '🔂', keywords: 'repetir una' },
+  { emoji: '🔄', keywords: 'flechas circulo' },
+  { emoji: '🔃', keywords: 'flechas verticales' },
+  { emoji: '➕', keywords: 'mas' },
+  { emoji: '➖', keywords: 'menos' },
+  { emoji: '➗', keywords: 'dividir' },
+  { emoji: '✖️', keywords: 'multiplicar' },
+  { emoji: '💲', keywords: 'dolar' },
+  { emoji: '💱', keywords: 'cambio moneda' },
+  { emoji: '™️', keywords: 'marca' },
+  { emoji: '©️', keywords: 'copyright' },
+  { emoji: '®️', keywords: 'registrado' },
+  { emoji: '〰️', keywords: 'onda' },
+  { emoji: '➰', keywords: 'lazo' },
+  { emoji: '➿', keywords: 'lazos' },
+  { emoji: '✔️', keywords: 'tilde' },
+  { emoji: '☑️', keywords: 'casilla' },
+  { emoji: '🔘', keywords: 'boton radio' },
+  { emoji: '⚪', keywords: 'circulo blanco' },
+  { emoji: '⚫', keywords: 'circulo negro' },
+  { emoji: '🔴', keywords: 'circulo rojo' },
+  { emoji: '🔵', keywords: 'circulo azul' },
+  { emoji: '🟠', keywords: 'circulo naranja' },
+  { emoji: '🟡', keywords: 'circulo amarillo' },
+  { emoji: '🟢', keywords: 'circulo verde' },
+  { emoji: '🟣', keywords: 'circulo violeta' },
+  { emoji: '🟤', keywords: 'circulo marron' },
+  { emoji: '⬜', keywords: 'cuadrado blanco' },
+  { emoji: '⬛', keywords: 'cuadrado negro' },
+  { emoji: '🟥', keywords: 'cuadrado rojo' },
+  { emoji: '🟧', keywords: 'cuadrado naranja' },
+  { emoji: '🟨', keywords: 'cuadrado amarillo' },
+  { emoji: '🟩', keywords: 'cuadrado verde' },
+  { emoji: '🟦', keywords: 'cuadrado azul' },
+  { emoji: '🟪', keywords: 'cuadrado violeta' },
+  { emoji: '🟫', keywords: 'cuadrado marron' }
+];
 
 function createEmojiPicker(currentEmoji, onSelect) {
   const picker = document.createElement('div');
   picker.className = 'emoji-picker';
-  EMOJI_LIST.forEach(emoji => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = emoji;
-    btn.title = emoji;
-    if (emoji === currentEmoji) btn.style.background = '#f3e5f5';
-    btn.addEventListener('click', () => onSelect(emoji));
-    picker.appendChild(btn);
-  });
+
+  const search = document.createElement('input');
+  search.type = 'search';
+  search.className = 'emoji-picker-search';
+  search.placeholder = 'Buscar emoji...';
+  search.autocomplete = 'off';
+
+  function renderButtons(filter = '') {
+    const term = filter.toLowerCase().trim();
+    picker.querySelectorAll('button.emoji-btn').forEach(b => b.remove());
+
+    EMOJI_LIST.forEach(item => {
+      if (term && !item.emoji.includes(term) && !item.keywords.includes(term)) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'emoji-btn';
+      btn.textContent = item.emoji;
+      btn.title = item.keywords;
+      if (item.emoji === currentEmoji) btn.classList.add('selected');
+      btn.addEventListener('click', () => onSelect(item.emoji));
+      picker.appendChild(btn);
+    });
+  }
+
+  search.addEventListener('input', () => renderButtons(search.value));
+
+  picker.appendChild(search);
+  renderButtons();
+
+  // Focus en el buscador al abrir
+  setTimeout(() => search.focus(), 0);
+
   return picker;
 }
 
 function createOptionInput(value) {
+  const parts = splitEmojiAndText(value || '');
   const row = document.createElement('div');
   row.className = 'step-editor-option';
 
+  const emojiBtn = document.createElement('button');
+  emojiBtn.type = 'button';
+  emojiBtn.className = 'step-editor-option-emoji';
+  emojiBtn.textContent = parts.emoji;
+  emojiBtn.title = 'Cambiar emoji';
+
   const input = document.createElement('input');
   input.type = 'text';
-  input.placeholder = 'Opción (ej: Pizza 🍕)';
-  input.value = value || '';
+  input.placeholder = 'Opción';
+  input.value = parts.text;
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -377,8 +881,28 @@ function createOptionInput(value) {
   removeBtn.title = 'Eliminar opción';
   removeBtn.addEventListener('click', () => row.remove());
 
+  const pickerContainer = document.createElement('div');
+  pickerContainer.className = 'emoji-picker-container';
+
+  emojiBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const existing = pickerContainer.querySelector('.emoji-picker');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    document.querySelectorAll('.emoji-picker').forEach(p => p.remove());
+    const picker = createEmojiPicker(emojiBtn.textContent, (emoji) => {
+      emojiBtn.textContent = emoji;
+      picker.remove();
+    });
+    pickerContainer.appendChild(picker);
+  });
+
+  row.appendChild(emojiBtn);
   row.appendChild(input);
   row.appendChild(removeBtn);
+  row.appendChild(pickerContainer);
   return row;
 }
 
@@ -574,8 +1098,13 @@ function readStepsFromEditor() {
     if (!title) return;
 
     const options = [];
-    child.querySelectorAll('.step-editor-option input').forEach(input => {
-      if (input.value.trim()) options.push(input.value.trim());
+    child.querySelectorAll('.step-editor-option').forEach(optRow => {
+      const emojiEl = optRow.querySelector('.step-editor-option-emoji');
+      const textEl = optRow.querySelector('input');
+      const text = textEl ? textEl.value.trim() : '';
+      if (!text) return;
+      const emoji = emojiEl ? emojiEl.textContent.trim() : '✨';
+      options.push(`${text} ${emoji}`.trim());
     });
 
     steps.push({
