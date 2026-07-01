@@ -600,6 +600,12 @@ textarea:focus {
   gap: 12px;
 }
 
+.landing-card {
+  background: transparent;
+  box-shadow: none;
+  min-height: 200px;
+}
+
 @media (max-width: 480px) {
   .card {
     padding: 28px 20px;

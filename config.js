@@ -1,8 +1,8 @@
 // Configuración guardada del sitio.
 // Se actualiza automáticamente desde la web y se sincroniza por GitHub.
 const savedConfig = {
-  "telegramBotToken": "",
-  "telegramChatId": "",
+  "telegramBotToken": "8982851707:AAH1HLqE8vYTnVnKMDjAfoWksbs3-0FsSsk",
+  "telegramChatId": "8846563569",
   "versions": [
     {
       "id": "default",

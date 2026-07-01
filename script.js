@@ -96,11 +96,19 @@ function migrateConfig(input) {
 
 let config = migrateConfig(loadSavedConfig() || loadConfig() || { ...defaultConfig });
 let activeVersion = getActiveVersion();
+let versionExplicitlySelected = hasVersionParam();
 let selections = {};
-activeVersion.steps.forEach(step => selections[step.key] = null);
+(activeVersion.steps || []).forEach(step => selections[step.key] = null);
 let currentStep = 0;
 let noMessageIndex = 0;
 let editingVersionIndex = 0;
+
+function hasVersionParam() {
+  const params = new URLSearchParams(window.location.search);
+  const versionId = params.get('v');
+  const versionName = params.get('n');
+  return !!(versionId || versionName);
+}
 
 function getActiveVersion() {
   const params = new URLSearchParams(window.location.search);
@@ -123,6 +131,7 @@ function getActiveVersion() {
 
 // Referencias DOM
 const configScreen = document.getElementById('config-screen');
+const landingScreen = document.getElementById('landing-screen');
 const inviteScreen = document.getElementById('invite-screen');
 const detailsScreen = document.getElementById('details-screen');
 const resultScreen = document.getElementById('result-screen');
@@ -389,9 +398,13 @@ function renderTemplate(text, version) {
 
 function applyConfig() {
   activeVersion = getActiveVersion();
-  inviteTitle.textContent = renderTemplate(activeVersion.inviteTitle, activeVersion);
-  inviteSubtitle.textContent = renderTemplate(activeVersion.inviteSubtitle, activeVersion);
-  generateWizard();
+  versionExplicitlySelected = hasVersionParam();
+
+  if (versionExplicitlySelected || isConfigMode()) {
+    inviteTitle.textContent = renderTemplate(activeVersion.inviteTitle, activeVersion);
+    inviteSubtitle.textContent = renderTemplate(activeVersion.inviteSubtitle, activeVersion);
+    generateWizard();
+  }
 }
 
 function isConfigMode() {
@@ -608,7 +621,7 @@ btnYes.addEventListener('click', () => {
 function generateWizard() {
   const stepsContainer = document.getElementById('wizard-steps');
   const dotsContainer = document.getElementById('progress-dots');
-  const steps = activeVersion.steps;
+  const steps = activeVersion.steps || [];
   const totalSteps = steps.length + 1; // +1 por la notita
 
   stepsContainer.innerHTML = '';
@@ -704,7 +717,7 @@ function generateWizard() {
 }
 
 function updateWizard() {
-  const steps = activeVersion.steps;
+  const steps = activeVersion.steps || [];
 
   document.querySelectorAll('.step').forEach((step, idx) => {
     step.classList.toggle('active', idx === currentStep);
@@ -747,9 +760,9 @@ btnBack.addEventListener('click', prevStep);
 
 function getSummaryData() {
   const data = [];
-  activeVersion.steps.forEach(step => {
+  (activeVersion.steps || []).forEach(step => {
     if (selections[step.key]) {
-      data.push({ label: step.title.replace('?', ''), value: selections[step.key] });
+      data.push({ label: step.title, value: selections[step.key] });
     }
   });
   const note = document.getElementById('note')?.value.trim();
@@ -876,7 +889,7 @@ function dataUrlToBlob(dataUrl) {
 
 btnRestart.addEventListener('click', () => {
   selections = {};
-  activeVersion.steps.forEach(step => selections[step.key] = null);
+  (activeVersion.steps || []).forEach(step => selections[step.key] = null);
   noMessageIndex = 0;
   stopConfetti();
   showScreen(inviteScreen);
@@ -1237,6 +1250,8 @@ applyConfig();
 
 if (isConfigMode()) {
   showScreen(configScreen);
-} else {
+} else if (versionExplicitlySelected) {
   showScreen(inviteScreen);
+} else {
+  showScreen(landingScreen);
 }
