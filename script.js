@@ -430,19 +430,63 @@ function buildShareText() {
   return text;
 }
 
-btnShareText.addEventListener('click', () => {
-  const text = encodeURIComponent(buildShareText());
-  window.open(`https://wa.me/?text=${text}`, '_blank');
+btnShareText.addEventListener('click', async () => {
+  try {
+    await shareImage();
+  } catch (err) {
+    console.error('Error al compartir:', err);
+    fallbackShare();
+  }
 });
 
 btnShareImage.addEventListener('click', () => {
+  downloadImage();
+});
+
+async function shareImage() {
+  const dataUrl = await drawShareImage();
+  const blob = dataUrlToBlob(dataUrl);
+  const file = new File([blob], 'nuestra-cita.png', { type: 'image/png' });
+
+  // Intentar compartir nativamente la imagen (funciona en móviles con HTTPS)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      files: [file],
+      title: 'Nuestra cita 💕',
+      text: '¡Así quedó todo! ¿Te parece? 😊'
+    });
+    return;
+  }
+
+  // Fallback: descargar imagen + abrir WhatsApp con texto
+  fallbackShare();
+}
+
+function fallbackShare() {
+  downloadImage();
+  const text = encodeURIComponent(buildShareText());
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+
+function downloadImage() {
   drawShareImage().then(dataUrl => {
     const link = document.createElement('a');
     link.href = dataUrl;
     link.download = 'nuestra-cita.png';
     link.click();
   });
-});
+}
+
+function dataUrlToBlob(dataUrl) {
+  const byteString = atob(dataUrl.split(',')[1]);
+  const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeString });
+}
 
 btnRestart.addEventListener('click', () => {
   stepConfig.forEach(step => selections[step.key] = null);
@@ -464,61 +508,133 @@ function drawShareImage() {
     canvas.width = width;
     canvas.height = height;
 
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#fff5f7');
-    gradient.addColorStop(0.5, '#fff0f5');
-    gradient.addColorStop(1, '#f3e5f5');
-    ctx.fillStyle = gradient;
+    // Fondo degradado
+    const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+    bgGradient.addColorStop(0, '#fff0f5');
+    bgGradient.addColorStop(0.45, '#f3e5f5');
+    bgGradient.addColorStop(1, '#ffe4ec');
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, width, height);
 
-    drawDecoration(ctx, 120, 160, 50, 'rgba(255, 158, 187, 0.25)');
-    drawDecoration(ctx, 920, 280, 40, 'rgba(212, 187, 255, 0.25)');
-    drawDecoration(ctx, 180, 1700, 60, 'rgba(255, 216, 190, 0.25)');
-    drawDecoration(ctx, 900, 1580, 45, 'rgba(194, 240, 220, 0.25)');
+    // Formas decorativas grandes tipo Spotify Wrapped
+    drawBlob(ctx, 140, 220, 320, '#ff9ebb', 0.35);
+    drawBlob(ctx, 900, 520, 420, '#d4bbff', 0.28);
+    drawBlob(ctx, -80, 1200, 480, '#ffd8be', 0.30);
+    drawBlob(ctx, 1020, 1500, 360, '#c2f0dc', 0.28);
+    drawBlob(ctx, 520, 1800, 300, '#ff9ebb', 0.22);
 
+    // Título principal
     ctx.textAlign = 'center';
+    ctx.fillStyle = '#5a4a4f';
+    ctx.font = '600 46px Quicksand, sans-serif';
+    ctx.fillText('Nuestra cita', width / 2, 170);
+
     ctx.fillStyle = '#ff7aa2';
-    ctx.font = 'bold 80px Quicksand, sans-serif';
-    ctx.fillText('¡Nuestra cita! 💕', width / 2, 280);
+    ctx.font = 'bold 96px Quicksand, sans-serif';
+    ctx.fillText('¿Salimos? 💕', width / 2, 280);
 
     ctx.fillStyle = '#8a7a80';
-    ctx.font = '40px Quicksand, sans-serif';
-    ctx.fillText('Así quedó todo:', width / 2, 360);
+    ctx.font = 'italic 38px Quicksand, sans-serif';
+    ctx.fillText('Así quedó todo:', width / 2, 350);
 
     const data = getSummaryData();
-    const startY = 520;
-    const gap = 220;
+    const cardWidth = 460;
+    const cardHeight = 260;
+    const gapX = 30;
+    const gapY = 30;
+    const startX = (width - (cardWidth * 2 + gapX)) / 2;
+    const startY = 430;
 
     data.forEach((item, idx) => {
-      const y = startY + idx * gap;
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const x = startX + col * (cardWidth + gapX);
+      const y = startY + row * (cardHeight + gapY);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.shadowColor = 'rgba(255, 122, 162, 0.15)';
-      ctx.shadowBlur = 30;
-      ctx.shadowOffsetY = 10;
-      roundRect(ctx, 90, y, width - 180, 180, 36);
+      // Card
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+      ctx.shadowColor = 'rgba(90, 74, 79, 0.08)';
+      ctx.shadowBlur = 28;
+      ctx.shadowOffsetY = 14;
+      roundRect(ctx, x, y, cardWidth, cardHeight, 32);
       ctx.fill();
       ctx.shadowColor = 'transparent';
 
+      // Emoji grande
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#ff7aa2';
-      ctx.font = 'bold 42px Quicksand, sans-serif';
-      ctx.fillText(item.label, 140, y + 70);
+      ctx.font = '90px Quicksand, sans-serif';
+      ctx.fillText(getEmojiForLabel(item.label), x + 26, y + 110);
 
+      // Label
+      ctx.fillStyle = '#8a7a80';
+      ctx.font = '600 28px Quicksand, sans-serif';
+      ctx.fillText(item.label, x + 26, y + 160);
+
+      // Value
       ctx.fillStyle = '#5a4a4f';
-      ctx.font = '52px Quicksand, sans-serif';
-      const value = item.value.length > 24 ? item.value.slice(0, 22) + '...' : item.value;
-      ctx.fillText(value, 140, y + 140);
+      ctx.font = 'bold 38px Quicksand, sans-serif';
+      const value = item.value.length > 16 ? item.value.slice(0, 14) + '...' : item.value;
+      ctx.fillText(value, x + 26, y + 212);
     });
 
-    const footerY = startY + data.length * gap + 80;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#b388ff';
-    ctx.font = 'italic 38px Quicksand, sans-serif';
-    ctx.fillText('¿Te parece? 😊', width / 2, footerY);
+    const lastY = startY + Math.ceil(data.length / 2) * (cardHeight + gapY);
+    const footerY = lastY + 90;
 
-    setTimeout(() => resolve(canvas.toDataURL('image/png')), 100);
+    // Caja final tipo "wrapped"
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    roundRect(ctx, 110, footerY - 60, width - 220, 160, 30);
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff7aa2';
+    ctx.font = 'bold 48px Quicksand, sans-serif';
+    ctx.fillText('¿Te parece? 😊', width / 2, footerY + 10);
+
+    ctx.fillStyle = '#b388ff';
+    ctx.font = 'italic 32px Quicksand, sans-serif';
+    ctx.fillText('Respondeme por WhatsApp 💬', width / 2, footerY + 62);
+
+    // Marca cute abajo
+    ctx.fillStyle = 'rgba(90, 74, 79, 0.35)';
+    ctx.font = '24px Quicksand, sans-serif';
+    ctx.fillText('Hecho con 💕', width / 2, height - 60);
+
+    setTimeout(() => resolve(canvas.toDataURL('image/png')), 150);
   });
+}
+
+function getEmojiForLabel(label) {
+  const map = {
+    '¿Qué se te antoja': '🍽️',
+    '¿A qué hora te busco mañana': '🕖',
+    '¿Qué onda el plan': '✨',
+    '¿Ambiente': '🌿',
+    'Notita 💌': '💌'
+  };
+  for (const key in map) {
+    if (label.includes(key)) return map[key];
+  }
+  return '💕';
+}
+
+function drawBlob(ctx, x, y, r, color, alpha) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.beginPath();
+  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha;
+  const points = 8;
+  for (let i = 0; i <= points * 2; i++) {
+    const angle = (i / (points * 2)) * Math.PI * 2;
+    const radius = i % 2 === 0 ? r : r * 0.65;
+    const px = Math.cos(angle) * radius;
+    const py = Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawDecoration(ctx, x, y, r, color) {
