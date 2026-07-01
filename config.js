@@ -19,8 +19,8 @@ const savedConfig = {
       ],
       "steps": [
         {
-          "key": "food",
           "emoji": "🍽️",
+          "key": "food",
           "title": "¿Qué se te antoja?",
           "subtitle": "Elige lo que más te provoque",
           "gridClass": "options-grid",
@@ -32,8 +32,8 @@ const savedConfig = {
           ]
         },
         {
-          "key": "time",
           "emoji": "🕖",
+          "key": "time",
           "title": "¿A qué hora te busco mañana?",
           "subtitle": "O si preferís encontrarnos",
           "gridClass": "options-grid",
@@ -45,8 +45,8 @@ const savedConfig = {
           ]
         },
         {
-          "key": "plan",
           "emoji": "✨",
+          "key": "plan",
           "title": "¿Qué onda el plan?",
           "subtitle": "Contame qué te pinta",
           "gridClass": "options-grid",
@@ -58,8 +58,75 @@ const savedConfig = {
           ]
         },
         {
-          "key": "vibe",
           "emoji": "🌿",
+          "key": "vibe",
+          "title": "¿Ambiente?",
+          "subtitle": "Elige la onda de la salida",
+          "gridClass": "options-grid-three",
+          "options": [
+            "Tranqui 🌿",
+            "Animado 🎉",
+            "Íntimo 🕯️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ari",
+      "name": "Ari",
+      "inviteTitle": "¿Querés salir conmigo?",
+      "inviteSubtitle": "Tengo ganas de verte de vuelta y soy un raro entonces me es más fácil decirte así. Y también porque soy único y diferente.",
+      "notePlaceholder": "Ej: me muero de ganas de verte ✨",
+      "noMessages": [
+        "No 💔",
+        "¿Segura?",
+        "¿Segurísima? 🥺",
+        "¿Cómo que no? 😏",
+        "Pensalo bien 💭"
+      ],
+      "steps": [
+        {
+          "emoji": "🍽️",
+          "key": "food",
+          "title": "¿Qué se te antoja?",
+          "subtitle": "Elige lo que más te provoque",
+          "gridClass": "options-grid",
+          "options": [
+            "Pizza 🍕",
+            "Hamburguesas 🍔",
+            "Al plato 🍽️",
+            "Lo que sea mientras sea contigo ✨"
+          ]
+        },
+        {
+          "emoji": "🕖",
+          "key": "time",
+          "title": "¿A qué hora te busco mañana?",
+          "subtitle": "O si preferís encontrarnos",
+          "gridClass": "options-grid",
+          "options": [
+            "19:00 🕖",
+            "20:00 🕗",
+            "20:30 🕣",
+            "Nos encontramos allí 🚶"
+          ]
+        },
+        {
+          "emoji": "✨",
+          "key": "plan",
+          "title": "¿Qué onda el plan?",
+          "subtitle": "Contame qué te pinta",
+          "gridClass": "options-grid",
+          "options": [
+            "Cenar 🍷",
+            "Tomar algo 🧉",
+            "Pasear 🌙",
+            "Sorpresa 🎁"
+          ]
+        },
+        {
+          "emoji": "🌿",
+          "key": "vibe",
           "title": "¿Ambiente?",
           "subtitle": "Elige la onda de la salida",
           "gridClass": "options-grid-three",
