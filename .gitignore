@@ -1,0 +1,14 @@
+# Logs de servidor local
+*.log
+
+# Imágenes temporales / capturas de pantalla
+Untitled.png
+*.png.bak
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
