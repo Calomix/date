@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 >nul
 cd /d "C:\MyStuff\Coding\Date"
 
 echo Inicializando repositorio local (si no existe)...
@@ -15,7 +14,7 @@ echo Agregando archivos...
 git add .
 
 echo Creando commit...
-git commit -m "Initial commit: cute date invitation page"
+git commit -m "Update site"
 
 echo Subiendo a GitHub...
 git push -u origin main
