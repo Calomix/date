@@ -105,35 +105,6 @@ body {
   padding: 40px 28px;
 }
 
-.btn-config {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  font-size: 1.3rem;
-  cursor: pointer;
-  z-index: 5;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.btn-config.visible {
-  opacity: 0.6;
-  pointer-events: auto;
-}
-
-.btn-config.visible:hover {
-  opacity: 1;
-  transform: rotate(30deg);
-}
-
 .emoji-big {
   font-size: 64px;
   margin-bottom: 8px;
@@ -269,6 +240,20 @@ h2 {
   margin-bottom: 6px;
   font-size: 0.95rem;
   color: var(--text);
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: #8a7a80;
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+
+.field-hint code {
+  background: #f3e5f5;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.75rem;
 }
 
 .config-group input,

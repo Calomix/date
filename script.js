@@ -72,7 +72,6 @@ const inviteTitle = document.getElementById('invite-title');
 const inviteSubtitle = document.getElementById('invite-subtitle');
 const btnYes = document.getElementById('btn-yes');
 const btnNo = document.getElementById('btn-no');
-const btnEditConfig = document.getElementById('btn-edit-config');
 const btnBack = document.getElementById('btn-back');
 const btnShareImage = document.getElementById('btn-share-image');
 const btnRestart = document.getElementById('btn-restart');
@@ -87,6 +86,7 @@ const cfgPlan = document.getElementById('cfg-plan');
 const cfgVibe = document.getElementById('cfg-vibe');
 const cfgNotePlaceholder = document.getElementById('cfg-note-placeholder');
 const cfgNoMessages = document.getElementById('cfg-no-messages');
+const cfgGitHubToken = document.getElementById('cfg-github-token');
 const btnSaveConfig = document.getElementById('btn-save-config');
 const btnDefaultConfig = document.getElementById('btn-default-config');
 
@@ -119,7 +119,27 @@ function saveConfig() {
   }
 }
 
-function exportConfigFile() {
+function loadGitHubToken() {
+  try {
+    return localStorage.getItem('dateGitHubToken');
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveGitHubToken(token) {
+  try {
+    if (token) {
+      localStorage.setItem('dateGitHubToken', token);
+    } else {
+      localStorage.removeItem('dateGitHubToken');
+    }
+  } catch (e) {
+    // ignorar
+  }
+}
+
+function buildConfigJsContent() {
   const configObject = {
     inviteTitle: config.inviteTitle,
     inviteSubtitle: config.inviteSubtitle,
@@ -131,8 +151,11 @@ function exportConfigFile() {
     noMessages: config.noMessages
   };
 
-  const content = `// Configuración guardada del sitio.\n// Reemplazá este archivo en el repo y subilo para que se aplique en todos los dispositivos.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
+  return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
+}
 
+function exportConfigFile() {
+  const content = buildConfigJsContent();
   const blob = new Blob([content], { type: 'application/javascript' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -140,6 +163,56 @@ function exportConfigFile() {
   link.download = 'config.js';
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function utf8ToBase64(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+}
+
+async function uploadConfigToGitHub(token) {
+  const owner = 'Calomix';
+  const repo = 'date';
+  const path = 'config.js';
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const content = buildConfigJsContent();
+
+  // Obtener el SHA actual del archivo (si existe)
+  let sha = null;
+  const getResponse = await fetch(apiUrl, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+
+  if (getResponse.ok) {
+    const data = await getResponse.json();
+    sha = data.sha;
+  } else if (getResponse.status !== 404) {
+    throw new Error(`No se pudo leer el archivo de GitHub: ${getResponse.status}`);
+  }
+
+  // Subir el archivo actualizado
+  const body = {
+    message: 'Update config from web',
+    content: utf8ToBase64(content),
+    sha: sha
+  };
+
+  const putResponse = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!putResponse.ok) {
+    const error = await putResponse.json().catch(() => ({}));
+    throw new Error(error.message || `Error ${putResponse.status} al subir a GitHub`);
+  }
 }
 
 function parseOptions(text) {
@@ -192,6 +265,7 @@ function fillConfigForm() {
   cfgVibe.value = config.vibe.join(', ');
   cfgNotePlaceholder.value = config.notePlaceholder;
   cfgNoMessages.value = config.noMessages.join('\n');
+  cfgGitHubToken.value = loadGitHubToken() || '';
 }
 
 function readConfigForm() {
@@ -224,11 +298,27 @@ function exitConfigMode() {
   window.history.replaceState({}, '', url.toString());
 }
 
-btnSaveConfig.addEventListener('click', () => {
+btnSaveConfig.addEventListener('click', async () => {
   config = readConfigForm();
   if (config.noMessages.length === 0) config.noMessages = [...defaultConfig.noMessages];
+
+  const token = cfgGitHubToken.value.trim();
+  saveGitHubToken(token);
   saveConfig();
-  exportConfigFile();
+
+  if (token) {
+    try {
+      await uploadConfigToGitHub(token);
+      alert('Configuración guardada en GitHub ✨');
+    } catch (err) {
+      console.error('Error subiendo a GitHub:', err);
+      alert('No se pudo subir a GitHub. Se descargó el archivo para que lo subas manualmente.\n\n' + err.message);
+      exportConfigFile();
+    }
+  } else {
+    exportConfigFile();
+  }
+
   applyConfig();
   exitConfigMode();
   showScreen(inviteScreen);
@@ -761,8 +851,6 @@ applyConfig();
 
 if (isConfigMode()) {
   showScreen(configScreen);
-  btnEditConfig.classList.add('visible');
 } else {
   showScreen(inviteScreen);
-  btnEditConfig.classList.remove('visible');
 }

@@ -67,6 +67,12 @@
 Pensalo bien 💭</textarea>
       </div>
 
+      <div class="config-group">
+        <label for="cfg-github-token">Token de GitHub (cloud sync)</label>
+        <input type="password" id="cfg-github-token" placeholder="ghp_..." autocomplete="off">
+        <p class="field-hint">Se guarda solo en este navegador. Necesita permiso <code>public_repo</code>. Si lo dejás vacío, la config se guarda solo acá.</p>
+      </div>
+
       <div class="config-actions">
         <button id="btn-save-config" class="btn btn-primary">Guardar y empezar 💕</button>
         <button id="btn-default-config" class="btn btn-secondary">Restaurar defaults ↺</button>
@@ -85,7 +91,6 @@ Pensalo bien 💭</textarea>
         <button id="btn-no" class="btn btn-no" ontouchstart="">No 💔</button>
       </div>
     </div>
-    <button id="btn-edit-config" class="btn-config" aria-label="Editar configuración">⚙️</button>
   </section>
 
   <!-- Pantalla 2: Wizard de detalles -->
