@@ -11,13 +11,39 @@ const savedConfig = {
       "inviteSubtitle": "Tengo ganas de verte de vuelta y soy un raro entonces me es más fácil decirte así. Y también porque soy único y diferente.",
       "notePlaceholder": "Ej: me muero de ganas de verte ✨",
       "noMessages": [
-        "No 💔",
-        "¿Segura?",
-        "¿Segurísima? 🥺",
-        "¿Cómo que no? 😏",
-        "Pensalo bien 💭"
+        "No💔",
+        "¿Segura?🥺",
+        "¿Segurísima?😭",
+        "¿Cómo que no?💀",
+        "Pensalo bien🤔"
       ],
       "steps": [
+        {
+          "key": "plan",
+          "emoji": "✨",
+          "title": "¿Cuál es la onda?",
+          "subtitle": "Qué querés hacer",
+          "gridClass": "options-grid",
+          "options": [
+            "Merienda 🥞",
+            "Cena 🍕",
+            "Cine 🎞️",
+            "Bar 🍷"
+          ]
+        },
+        {
+          "key": "time",
+          "emoji": "🕖",
+          "title": "¿Cuándo nos vemos?",
+          "subtitle": "No te puedo asegurar en otros horarios",
+          "gridClass": "options-grid",
+          "options": [
+            "Viernes 21:30 🕤",
+            "Domingo 21:30 🕤",
+            "Martes 7 19:00 🕖",
+            "Jueves 9 19:00 🕖"
+          ]
+        },
         {
           "key": "food",
           "emoji": "🍽️",
@@ -25,46 +51,20 @@ const savedConfig = {
           "subtitle": "Elige lo que más te provoque",
           "gridClass": "options-grid",
           "options": [
-            "Pizza 🍕",
-            "Hamburguesas 🍔",
+            "Coffee ☕",
+            "Burgers 🍔",
             "Al plato 🍽️",
             "Lo que sea mientras sea contigo ✨"
           ]
         },
         {
-          "key": "time",
-          "emoji": "🕖",
-          "title": "¿A qué hora te busco mañana?",
-          "subtitle": "O si preferís encontrarnos",
-          "gridClass": "options-grid",
-          "options": [
-            "19:00 🕖",
-            "20:00 🕗",
-            "20:30 🕣",
-            "Nos encontramos allí 🚶"
-          ]
-        },
-        {
-          "key": "plan",
-          "emoji": "✨",
-          "title": "¿Qué onda el plan?",
-          "subtitle": "Contame qué te pinta",
-          "gridClass": "options-grid",
-          "options": [
-            "Cenar 🍷",
-            "Tomar algo 🧉",
-            "Pasear 🌙",
-            "Sorpresa 🎁"
-          ]
-        },
-        {
           "key": "vibe",
-          "emoji": "🌿",
+          "emoji": "🎨",
           "title": "¿Ambiente?",
-          "subtitle": "Elige la onda de la salida",
+          "subtitle": "Qué onda te copa?",
           "gridClass": "options-grid-three",
           "options": [
-            "Tranqui 🌿",
+            "Chill 🌿",
             "Animado 🎉",
             "Íntimo 🕯️"
           ]
