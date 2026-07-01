@@ -56,7 +56,7 @@ const stepConfig = [
   { key: 'vibe', emoji: '🌿', title: '¿Ambiente?', subtitle: 'Elige la onda de la salida', gridClass: 'options-grid-three' }
 ];
 
-let config = loadConfig() || { ...defaultConfig };
+let config = loadSavedConfig() || loadConfig() || { ...defaultConfig };
 let selections = {};
 stepConfig.forEach(step => selections[step.key] = null);
 let currentStep = 0;
@@ -94,6 +94,14 @@ const btnDefaultConfig = document.getElementById('btn-default-config');
 // Utilidades
 // ═══════════════════════════════════════════════════════════════════
 
+function loadSavedConfig() {
+  // config.js puede exportar savedConfig; si existe y no es null, tiene prioridad
+  if (typeof savedConfig !== 'undefined' && savedConfig) {
+    return savedConfig;
+  }
+  return null;
+}
+
 function loadConfig() {
   try {
     const saved = localStorage.getItem('dateConfig');
@@ -109,6 +117,29 @@ function saveConfig() {
   } catch (e) {
     // ignorar
   }
+}
+
+function exportConfigFile() {
+  const configObject = {
+    inviteTitle: config.inviteTitle,
+    inviteSubtitle: config.inviteSubtitle,
+    food: config.food,
+    time: config.time,
+    plan: config.plan,
+    vibe: config.vibe,
+    notePlaceholder: config.notePlaceholder,
+    noMessages: config.noMessages
+  };
+
+  const content = `// Configuración guardada del sitio.\n// Reemplazá este archivo en el repo y subilo para que se aplique en todos los dispositivos.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
+
+  const blob = new Blob([content], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'config.js';
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function parseOptions(text) {
@@ -197,6 +228,7 @@ btnSaveConfig.addEventListener('click', () => {
   config = readConfigForm();
   if (config.noMessages.length === 0) config.noMessages = [...defaultConfig.noMessages];
   saveConfig();
+  exportConfigFile();
   applyConfig();
   exitConfigMode();
   showScreen(inviteScreen);
