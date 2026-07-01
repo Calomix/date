@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>¿Salimos? 💕</title>
+  <!-- Psst... si estás leyendo esto, ya sabemos que abriste el inspector. Yo también estoy emocionado 💕 -->
+  <meta name="secret-message" content="Para la ingeniera más linda: gracias por curiosear 🥰">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="hearts" aria-hidden="true"></div>
+  <!-- Easter egg visual: este corazón solo se ve si sabés dónde buscar -->
+  <div class="hidden-heart" aria-hidden="true">🫶</div>
+
+  <!-- Pantalla 0: Configuración -->
+  <section id="config-screen" class="screen active">
+    <div class="card config-card">
+      <div class="emoji-big">⚙️</div>
+      <h1>Configurá tu invitación</h1>
+      <p class="subtitle">Personalizá todo para esta cita y guardá para usar después.</p>
+
+      <div class="config-group">
+        <label for="cfg-invite-title">Título de la invitación</label>
+        <input type="text" id="cfg-invite-title" value="¿Quieres salir conmigo?">
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-invite-subtitle">Subtítulo</label>
+        <input type="text" id="cfg-invite-subtitle" value="Tengo ganas de verte y quiero que coordinemos todo juntos.">
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-food">Opciones de comida (separadas por coma)</label>
+        <textarea id="cfg-food" rows="2">Pizza 🍕, Hamburguesas 🍔, Al plato 🍽️, Lo que sea mientras sea contigo ✨</textarea>
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-time">Opciones de hora (separadas por coma)</label>
+        <textarea id="cfg-time" rows="2">19:00 🕖, 20:00 🕗, 20:30 🕣, Nos encontramos allí 🚶</textarea>
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-plan">Opciones de plan (separadas por coma)</label>
+        <textarea id="cfg-plan" rows="2">Cenar 🍷, Tomar algo 🧉, Pasear 🌙, Sorpresa 🎁</textarea>
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-vibe">Opciones de ambiente (separadas por coma)</label>
+        <textarea id="cfg-vibe" rows="2">Tranqui 🌿, Animado 🎉, Íntimo 🕯️</textarea>
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-note-placeholder">Placeholder de la notita</label>
+        <input type="text" id="cfg-note-placeholder" value="Ej: me muero de ganas de verte ✨">
+      </div>
+
+      <div class="config-group">
+        <label for="cfg-no-messages">Mensajes del botón No (uno por línea)</label>
+        <textarea id="cfg-no-messages" rows="5">No 💔
+¿Segura?
+¿Segurísima? 🥺
+¿Cómo que no? 😏
+Pensalo bien 💭</textarea>
+      </div>
+
+      <div class="config-actions">
+        <button id="btn-save-config" class="btn btn-primary">Guardar y empezar 💕</button>
+        <button id="btn-default-config" class="btn btn-secondary">Restaurar defaults ↺</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pantalla 1: Invitación -->
+  <section id="invite-screen" class="screen">
+    <div class="card invite-card">
+      <div class="emoji-big">💌</div>
+      <h1 id="invite-title">¿Quieres salir conmigo?</h1>
+      <p id="invite-subtitle" class="subtitle">Tengo ganas de verte y quiero que coordinemos todo juntos.</p>
+      <div class="buttons-row">
+        <button id="btn-yes" class="btn btn-yes">Sí, obvio 💖</button>
+        <button id="btn-no" class="btn btn-no" ontouchstart="">No 💔</button>
+      </div>
+    </div>
+    <button id="btn-edit-config" class="btn-config" aria-label="Editar configuración">⚙️</button>
+  </section>
+
+  <!-- Pantalla 2: Wizard de detalles -->
+  <section id="details-screen" class="screen">
+    <div class="card details-card">
+      <div class="wizard-header">
+        <div class="progress-dots" id="progress-dots"></div>
+        <button id="btn-back" class="btn-back" aria-label="Volver">←</button>
+      </div>
+
+      <div class="wizard-steps" id="wizard-steps">
+        <!-- Los pasos se generan dinámicamente -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Pantalla 3: Resumen visual -->
+  <section id="result-screen" class="screen">
+    <div class="card result-card">
+      <div class="emoji-big">🥰</div>
+      <h2>¡Así quedó todo!</h2>
+      <p class="subtitle">Toque perfecto para compartir</p>
+
+      <div id="summary-visual" class="summary-visual">
+        <div class="summary-header">Nuestra cita 💕</div>
+        <div id="summary-list" class="summary-list"></div>
+      </div>
+
+      <div class="result-actions">
+        <button id="btn-share-text" class="btn btn-primary">Responder por WhatsApp 💬</button>
+        <button id="btn-share-image" class="btn btn-secondary">Compartir como imagen 🖼️</button>
+      </div>
+
+      <button id="btn-restart" class="btn btn-ghost">Volver a empezar ↺</button>
+    </div>
+  </section>
+
+  <canvas id="share-canvas" aria-hidden="true"></canvas>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <script src="script.js"></script>
+</body>
+</html>
