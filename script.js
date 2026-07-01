@@ -75,7 +75,6 @@ const btnNo = document.getElementById('btn-no');
 const btnEditConfig = document.getElementById('btn-edit-config');
 const btnBack = document.getElementById('btn-back');
 const btnShareImage = document.getElementById('btn-share-image');
-const btnWhatsApp = document.getElementById('btn-whatsapp');
 const btnRestart = document.getElementById('btn-restart');
 const summaryList = document.getElementById('summary-list');
 const shareCanvas = document.getElementById('share-canvas');
@@ -217,14 +216,37 @@ btnDefaultConfig.addEventListener('click', () => {
 function moveNoButton() {
   const container = inviteScreen.querySelector('.buttons-row');
   const rect = container.getBoundingClientRect();
-  const btnRect = btnNo.getBoundingClientRect();
+  const noRect = btnNo.getBoundingClientRect();
+  const yesRect = btnYes.getBoundingClientRect();
 
   const padding = 8;
-  const maxLeft = rect.width - btnRect.width - padding * 2;
-  const maxTop = rect.height - btnRect.height - padding * 2;
+  const maxLeft = rect.width - noRect.width - padding * 2;
+  const maxTop = rect.height - noRect.height - padding * 2;
 
-  const randomLeft = Math.random() * maxLeft + padding;
-  const randomTop = Math.random() * maxTop + padding;
+  // Zona que debe evitar el botón No (el botón Sí + un margen de seguridad)
+  const margin = 16;
+  const forbidden = {
+    left: yesRect.left - rect.left - noRect.width - margin,
+    top: yesRect.top - rect.top - noRect.height - margin,
+    right: yesRect.right - rect.left + noRect.width + margin,
+    bottom: yesRect.bottom - rect.top + noRect.height + margin
+  };
+
+  let randomLeft, randomTop;
+  let attempts = 0;
+  const maxAttempts = 40;
+
+  do {
+    randomLeft = Math.random() * maxLeft + padding;
+    randomTop = Math.random() * maxTop + padding;
+    attempts++;
+  } while (
+    attempts < maxAttempts &&
+    randomLeft < forbidden.right &&
+    randomLeft + noRect.width > forbidden.left &&
+    randomTop < forbidden.bottom &&
+    randomTop + noRect.height > forbidden.top
+  );
 
   btnNo.style.position = 'absolute';
   btnNo.style.left = `${randomLeft}px`;
@@ -432,21 +454,10 @@ function buildShareText() {
 
 btnShareImage.addEventListener('click', async () => {
   try {
-    const shared = await shareImageFile();
-    if (!shared) {
-      // Si el dispositivo no soporta compartir archivos, descargamos y abrimos WhatsApp
-      downloadImage();
-      openWhatsAppDirect();
-    }
+    await shareImageFile();
   } catch (err) {
     console.error('Error al compartir:', err);
-    downloadImage();
-    openWhatsAppDirect();
   }
-});
-
-btnWhatsApp.addEventListener('click', () => {
-  openWhatsAppDirect();
 });
 
 async function shareImageFile() {
@@ -454,41 +465,13 @@ async function shareImageFile() {
   const blob = dataUrlToBlob(dataUrl);
   const file = new File([blob], 'nuestra-cita.png', { type: 'image/png', lastModified: Date.now() });
 
-  // Intentar compartir nativamente la imagen (funciona en móviles con HTTPS)
+  // Compartir nativamente solo la imagen (sin texto adicional)
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      files: [file],
-      title: 'Nuestra cita 💕',
-      text: '¡Así quedó todo! ¿Te parece? 😊'
-    });
+    await navigator.share({ files: [file] });
     return true;
   }
 
   return false;
-}
-
-function isAndroid() {
-  return /android/i.test(navigator.userAgent);
-}
-
-function openWhatsAppDirect() {
-  const text = encodeURIComponent(buildShareText());
-
-  // En Android Chrome podemos usar un intent que abre WhatsApp directamente
-  // (pantalla de contactos, como en la captura 3), pero sin la imagen adjunta
-  // porque una web no puede pasarle un archivo binario a WhatsApp por seguridad.
-  if (isAndroid()) {
-    window.location.href = `intent://send?text=${text}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
-    return;
-  }
-
-  // Fallback para iOS / desktop
-  window.open(`https://wa.me/?text=${text}`, '_blank');
-}
-
-function fallbackShare() {
-  downloadImage();
-  openWhatsAppDirect();
 }
 
 function downloadImage() {
@@ -527,7 +510,7 @@ function drawShareImage() {
     const canvas = shareCanvas;
     const ctx = canvas.getContext('2d');
     const width = 1080;
-    const height = 1920;
+    const height = 1440;
     canvas.width = width;
     canvas.height = height;
 
@@ -540,33 +523,32 @@ function drawShareImage() {
     ctx.fillRect(0, 0, width, height);
 
     // Formas decorativas grandes tipo Spotify Wrapped
-    drawBlob(ctx, 140, 220, 320, '#ff9ebb', 0.35);
-    drawBlob(ctx, 900, 520, 420, '#d4bbff', 0.28);
-    drawBlob(ctx, -80, 1200, 480, '#ffd8be', 0.30);
-    drawBlob(ctx, 1020, 1500, 360, '#c2f0dc', 0.28);
-    drawBlob(ctx, 520, 1800, 300, '#ff9ebb', 0.22);
+    drawBlob(ctx, 140, 180, 280, '#ff9ebb', 0.35);
+    drawBlob(ctx, 900, 420, 360, '#d4bbff', 0.28);
+    drawBlob(ctx, -80, 900, 400, '#ffd8be', 0.30);
+    drawBlob(ctx, 1020, 1150, 320, '#c2f0dc', 0.28);
 
     // Título principal
     ctx.textAlign = 'center';
     ctx.fillStyle = '#5a4a4f';
     ctx.font = '600 46px Quicksand, sans-serif';
-    ctx.fillText('Nuestra cita', width / 2, 170);
+    ctx.fillText('Nuestra cita', width / 2, 130);
 
     ctx.fillStyle = '#ff7aa2';
     ctx.font = 'bold 96px Quicksand, sans-serif';
-    ctx.fillText('¿Salimos? 💕', width / 2, 280);
+    ctx.fillText('¿Salimos? 💕', width / 2, 210);
 
     ctx.fillStyle = '#8a7a80';
     ctx.font = 'italic 38px Quicksand, sans-serif';
-    ctx.fillText('Así quedó todo:', width / 2, 350);
+    ctx.fillText('Así quedó todo:', width / 2, 270);
 
     const data = getSummaryData();
     const cardWidth = 460;
-    const cardHeight = 260;
+    const cardHeight = 240;
     const gapX = 30;
     const gapY = 30;
     const startX = (width - (cardWidth * 2 + gapX)) / 2;
-    const startY = 430;
+    const startY = 330;
 
     data.forEach((item, idx) => {
       const col = idx % 2;
@@ -612,15 +594,6 @@ function drawShareImage() {
     ctx.fillStyle = '#ff7aa2';
     ctx.font = 'bold 48px Quicksand, sans-serif';
     ctx.fillText('¿Te parece? 😊', width / 2, footerY + 10);
-
-    ctx.fillStyle = '#b388ff';
-    ctx.font = 'italic 32px Quicksand, sans-serif';
-    ctx.fillText('Respondeme por WhatsApp 💬', width / 2, footerY + 62);
-
-    // Marca cute abajo
-    ctx.fillStyle = 'rgba(90, 74, 79, 0.35)';
-    ctx.font = '24px Quicksand, sans-serif';
-    ctx.fillText('Hecho con 💕', width / 2, height - 60);
 
     setTimeout(() => resolve(canvas.toDataURL('image/png')), 150);
   });
