@@ -4,11 +4,11 @@
 const savedConfig = {
   "versions": [
     {
-      "id": "default",
-      "name": "Default",
-      "inviteTitle": "¿Quieres salir conmigo?",
-      "inviteSubtitle": "Tengo ganas de verte y quiero que coordinemos todo juntos.",
-      "notePlaceholder": "Ej: me muero de ganas de verte ✨",
+      "id": "fi2",
+      "name": "Fifi",
+      "inviteTitle": "¿Querés salir a comer conmigo?",
+      "inviteSubtitle": "Pasó mucho tiempo desde la última vez que salimos a comer, y esta vez sí puede ser una cita oficial",
+      "notePlaceholder": "Ej: te extrañé mi negrão ✨",
       "noMessages": [
         "No 💔",
         "¿Segura?",
@@ -18,64 +18,64 @@ const savedConfig = {
       ],
       "steps": [
         {
-          "emoji": "🍽️",
+          "key": "plan",
+          "emoji": "✨",
+          "title": "¿Qué onda el plan?",
+          "subtitle": "Contame qué te pinta",
+          "gridClass": "options-grid",
+          "options": [
+            "Cena romántica cute 🍷",
+            "Vamos por unos tragos 🍹",
+            "Paseo por ahí 🌙",
+            "De todo un poco 🧺"
+          ]
+        },
+        {
           "key": "food",
+          "emoji": "🍽️",
           "title": "¿Qué se te antoja?",
           "subtitle": "Elige lo que más te provoque",
           "gridClass": "options-grid",
           "options": [
             "Pizza 🍕",
-            "Hamburguesas 🍔",
-            "Al plato 🍽️",
+            "Burgers 🍔",
+            "Al plato(? 🥘",
             "Lo que sea mientras sea contigo ✨"
           ]
         },
         {
-          "emoji": "🕖",
           "key": "time",
-          "title": "¿A qué hora te busco mañana?",
-          "subtitle": "O si preferís encontrarnos",
+          "emoji": "⏳",
+          "title": "¿Cuándo podés?",
+          "subtitle": "La pregunta del millón",
           "gridClass": "options-grid",
           "options": [
-            "19:00 🕖",
-            "20:00 🕗",
-            "20:30 🕣",
-            "Nos encontramos allí 🚶"
+            "Mañana 20:00 (feriado) 🕗",
+            "Viernes 21:00 🕘",
+            "Sábado 20:00 (previa CColombo) 🕗",
+            "Hoy after-foodpark con el resto? 🤔"
           ]
         },
         {
-          "emoji": "✨",
-          "key": "plan",
-          "title": "¿Qué onda el plan?",
-          "subtitle": "Contame qué te pinta",
-          "gridClass": "options-grid",
-          "options": [
-            "Cenar 🍝",
-            "Tomar algo 🍷",
-            "Pasear 🌙",
-            "Sorpresa 🎁"
-          ]
-        },
-        {
-          "emoji": "🌿",
           "key": "vibe",
+          "emoji": "🌿",
           "title": "¿Ambiente?",
-          "subtitle": "Elige la onda de la salida",
+          "subtitle": "Qué vibes querés para la noche",
           "gridClass": "options-grid-three",
           "options": [
             "Tranqui 🌿",
-            "Animado 🎉",
+            "Chikibum chikibum 🍻",
             "Íntimo 🕯️"
           ]
         }
       ]
     },
     {
-      "id": "ari",
-      "name": "Ari",
-      "inviteTitle": "¿Querés salir conmigo?",
-      "inviteSubtitle": "Tengo ganas de verte de vuelta y soy un raro entonces me es más fácil decirte así. Y también porque soy único y diferente.",
-      "notePlaceholder": "Ej: me muero de ganas de verte ✨",
+      "id": "s",
+      "name": "Shofi",
+      "inviteTitle": "¿Quieres salir conmigo?",
+      "inviteSubtitle": "Tengo un montón de ganas de verte y quiero que coordinemos todo juntos.",
+      "notePlaceholder": "Ej: quitame el frío ajjaj ✨",
       "noMessages": [
         "No 💔",
         "¿Segura?",
@@ -85,52 +85,52 @@ const savedConfig = {
       ],
       "steps": [
         {
-          "emoji": "🍽️",
           "key": "food",
+          "emoji": "🍽️",
           "title": "¿Qué se te antoja?",
           "subtitle": "Elige lo que más te provoque",
           "gridClass": "options-grid",
           "options": [
+            "Un Coffee ☕",
             "Pizza 🍕",
-            "Hamburguesas 🍔",
-            "Al plato 🍽️",
+            "Algo al plato 🍽️",
             "Lo que sea mientras sea contigo ✨"
           ]
         },
         {
-          "emoji": "🕖",
           "key": "time",
-          "title": "¿A qué hora te busco mañana?",
+          "emoji": "🏡",
+          "title": "¿A qué hora te busco?",
           "subtitle": "O si preferís encontrarnos",
           "gridClass": "options-grid",
           "options": [
-            "19:00 🕖",
+            "19:30 🕢",
             "20:00 🕗",
             "20:30 🕣",
-            "Nos encontramos allí 🚶"
+            "Nos encontramos ahí 🚕"
           ]
         },
         {
-          "emoji": "✨",
           "key": "plan",
+          "emoji": "✨",
           "title": "¿Qué onda el plan?",
-          "subtitle": "Contame qué te pinta",
+          "subtitle": "Qué tenés pensado para hoy",
           "gridClass": "options-grid",
           "options": [
-            "Cenar 🍷",
-            "Tomar algo 🧉",
-            "Pasear 🌙",
-            "Sorpresa 🎁"
+            "Meriendita cute 🍰",
+            "Tomar algo 🍹",
+            "Pasear 💫",
+            "Lo que sea pero juntos 💞"
           ]
         },
         {
-          "emoji": "🌿",
           "key": "vibe",
+          "emoji": "🌙",
           "title": "¿Ambiente?",
-          "subtitle": "Elige la onda de la salida",
+          "subtitle": "En qué mood estás hoy?",
           "gridClass": "options-grid-three",
           "options": [
-            "Tranqui 🌿",
+            "Chill 🌿",
             "Animado 🎉",
             "Íntimo 🕯️"
           ]
