@@ -1,7 +1,8 @@
 // Configuración guardada del sitio.
 // Se actualiza automáticamente desde la web y se sincroniza por GitHub.
-// NO contiene tokens ni secrets — esos viven solo en el navegador.
+// Secrets encriptados con AES-GCM — el texto plano nunca se sube a git.
 const savedConfig = {
+  "adminPinHash": "2b7c2b06cf965e76aedd47d3ddb786d0f1e447792b052b60ff32d94644c33c90",
   "versions": [
     {
       "id": "fi2",
@@ -99,7 +100,7 @@ const savedConfig = {
         },
         {
           "key": "time",
-          "emoji": "🏡",
+          "emoji": "🦅",
           "title": "¿A qué hora te busco?",
           "subtitle": "O si preferís encontrarnos",
           "gridClass": "options-grid",
@@ -137,5 +138,9 @@ const savedConfig = {
         }
       ]
     }
-  ]
+  ],
+  "global": {
+    "telegramBotTokenEnc": "SS64PcAPD88yVgi+g4TSGVzM8+B8z9wuK4JnZEmC2RezCj2vgd6cbHCpHVHvyu+Xs3U+vAAnuQEuFoBUDLucnypqe7Adl5c6qyg=",
+    "telegramChatIdEnc": "roQM8npW5gKhuiJ0zIq5jEDuy4ljNnH7+X1/QUIbi+tKzAj5LyQ="
+  }
 };
