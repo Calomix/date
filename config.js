@@ -72,7 +72,7 @@ const savedConfig = {
       ]
     },
     {
-      "id": "sofi",
+      "id": "s",
       "name": "Shofi",
       "inviteTitle": "¿Quieres salir conmigo?",
       "inviteSubtitle": "Tengo un montón de ganas de verte y quiero que coordinemos todo juntos.",
