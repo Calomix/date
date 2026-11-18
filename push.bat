@@ -1,14 +1,14 @@
 @echo off
-cd /d "C:\MyStuff\Coding\Date"
+cd /d "C:\MyStuff\Coding\calomix.com\Date"
 
-echo Inicializando repositorio local (si no existe)...
-git init
-
-echo Cambiando a rama main...
-git branch -M main
-
-echo Configurando remote origin...
-git remote add origin https://github.com/Calomix/date.git 2>nul || git remote set-url origin https://github.com/Calomix/date.git
+echo Actualizando desde GitHub (para no pisar cambios guardados desde la web)...
+git pull --rebase origin main
+if errorlevel 1 (
+  echo.
+  echo ATENCION: Hubo conflictos al hacer pull. Resolvelos antes de continuar.
+  pause
+  exit /b 1
+)
 
 echo Agregando archivos...
 git add .
@@ -20,5 +20,5 @@ echo Subiendo a GitHub...
 git push -u origin main
 
 echo.
-echo Listo! Revisá https://github.com/Calomix/date
+echo Listo! Revisa https://github.com/Calomix/date
 pause

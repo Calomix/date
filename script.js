@@ -54,20 +54,45 @@ const defaultVersion = {
 };
 
 const defaultConfig = {
-  telegramBotToken: '',
-  telegramChatId: '',
+  adminPinHash: '',
   versions: [JSON.parse(JSON.stringify(defaultVersion))]
 };
+
+const MAX_TEXT = {
+  versionId: 50,
+  name: 80,
+  inviteTitle: 160,
+  inviteSubtitle: 240,
+  notePlaceholder: 120,
+  noMessage: 80,
+  stepTitle: 120,
+  stepSubtitle: 160,
+  option: 100
+};
+
+const ALLOWED_GRID_CLASSES = ['options-grid', 'options-grid-three', 'options-stack'];
+
+function normalizePinHash(value) {
+  return /^[a-f0-9]{16,128}$/i.test(String(value || '')) ? String(value).toLowerCase() : '';
+}
 
 function migrateConfig(input) {
   if (!input) return JSON.parse(JSON.stringify(defaultConfig));
 
+  // Migrar secrets viejos a localStorage separado (nunca van a git)
+  if (input.telegramBotToken || input.telegramChatId) {
+    const creds = loadTelegramCreds();
+    saveTelegramCreds(
+      creds.botToken || input.telegramBotToken || '',
+      creds.chatId || input.telegramChatId || ''
+    );
+  }
+
   // Si ya tiene versions, está en el nuevo formato
   if (Array.isArray(input.versions) && input.versions.length > 0) {
     return {
-      telegramBotToken: input.telegramBotToken || '',
-      telegramChatId: input.telegramChatId || '',
-      versions: input.versions.map(v => ({ ...defaultVersion, ...v }))
+      adminPinHash: normalizePinHash(input.adminPinHash),
+      versions: input.versions.map(v => sanitizeVersion({ ...defaultVersion, ...v }))
     };
   }
 
@@ -88,13 +113,48 @@ function migrateConfig(input) {
   };
 
   return {
-    telegramBotToken: input.telegramBotToken || '',
-    telegramChatId: input.telegramChatId || '',
-    versions: [legacyVersion]
+    adminPinHash: normalizePinHash(input.adminPinHash),
+    versions: [sanitizeVersion(legacyVersion)]
   };
 }
 
-let config = migrateConfig(loadSavedConfig() || loadConfig() || { ...defaultConfig });
+// ── URL sanitization ──────────────────────────────────────────────
+// Strip all params except v and config. Validate their values.
+(function sanitizeURL() {
+  const url = new URL(window.location.href);
+  const allowed = new Set(['v', 'config']);
+  let dirty = false;
+
+  // Remove unknown params
+  for (const key of [...url.searchParams.keys()]) {
+    if (!allowed.has(key)) {
+      url.searchParams.delete(key);
+      dirty = true;
+    }
+  }
+
+  // Validate v: alphanumeric, hyphens, underscores only (max 50 chars)
+  const v = url.searchParams.get('v');
+  if (v !== null) {
+    if (!/^[a-zA-Z0-9_-]{1,50}$/.test(v)) {
+      url.searchParams.delete('v');
+      dirty = true;
+    }
+  }
+
+  // Validate config: must be exactly "1" or absent
+  const cfg = url.searchParams.get('config');
+  if (cfg !== null && cfg !== '1') {
+    url.searchParams.delete('config');
+    dirty = true;
+  }
+
+  if (dirty) {
+    window.history.replaceState({}, '', url.toString());
+  }
+})();
+
+let config = migrateConfig(loadConfig() || loadSavedConfig() || { ...defaultConfig });
 let activeVersion = getActiveVersion();
 let selections = {};
 ((activeVersion || getDefaultVersion()).steps || []).forEach(step => selections[step.key] = null);
@@ -104,27 +164,18 @@ let editingVersionIndex = 0;
 
 function hasVersionParam() {
   const params = new URLSearchParams(window.location.search);
-  const versionId = params.get('v');
-  const versionName = params.get('n');
-  return !!(versionId || versionName);
+  return !!params.get('v');
 }
 
 function getActiveVersion() {
   const params = new URLSearchParams(window.location.search);
   const versionId = params.get('v');
-  const versionName = params.get('n');
 
   // Si no se especifica versión, no se muestra ningún formulario
-  if (!versionId && !versionName) return null;
+  if (!versionId) return null;
 
-  if (versionId && config.versions) {
+  if (config.versions) {
     const found = config.versions.find(v => v.id === versionId);
-    if (found) return found;
-  }
-
-  if (versionName && config.versions) {
-    const normalized = versionName.toLowerCase().trim();
-    const found = config.versions.find(v => v.name.toLowerCase().trim() === normalized || v.id.toLowerCase().trim() === normalized);
     if (found) return found;
   }
 
@@ -176,7 +227,7 @@ const btnDefaultConfig = document.getElementById('btn-default-config');
 // ═══════════════════════════════════════════════════════════════════
 
 function loadSavedConfig() {
-  // config.js puede exportar savedConfig; si existe y no es null, tiene prioridad
+  // config.js puede exportar savedConfig; se usa como fallback si no hay nada en localStorage
   if (typeof savedConfig !== 'undefined' && savedConfig) {
     return savedConfig;
   }
@@ -195,8 +246,22 @@ function loadConfig() {
 function saveConfig() {
   try {
     localStorage.setItem('dateConfig', JSON.stringify(config));
+    localStorage.setItem('dateConfigLastSaved', String(Date.now()));
+    return true;
   } catch (e) {
-    // ignorar
+    console.error('Error guardando en localStorage:', e);
+    return false;
+  }
+}
+
+function renderLastSaved() {
+  const el = document.getElementById('last-saved-indicator');
+  if (!el) return;
+  try {
+    const ts = localStorage.getItem('dateConfigLastSaved');
+    el.textContent = ts ? 'Último guardado: ' + formatDate(parseInt(ts, 10)) : '';
+  } catch (e) {
+    el.textContent = '';
   }
 }
 
@@ -220,14 +285,91 @@ function saveGitHubToken(token) {
   }
 }
 
+// Secrets de Telegram: solo en este navegador, nunca en config.js ni en git.
+function loadTelegramCreds() {
+  try {
+    return {
+      botToken: localStorage.getItem('dateTelegramBotToken') || '',
+      chatId: localStorage.getItem('dateTelegramChatId') || ''
+    };
+  } catch (e) {
+    return { botToken: '', chatId: '' };
+  }
+}
+
+function saveTelegramCreds(botToken, chatId) {
+  try {
+    if (botToken) {
+      localStorage.setItem('dateTelegramBotToken', botToken);
+    } else {
+      localStorage.removeItem('dateTelegramBotToken');
+    }
+    if (chatId) {
+      localStorage.setItem('dateTelegramChatId', chatId);
+    } else {
+      localStorage.removeItem('dateTelegramChatId');
+    }
+  } catch (e) {
+    // ignorar
+  }
+}
+
+function clampText(value, max) {
+  return String(value == null ? '' : value).slice(0, max);
+}
+
+function normalizeVersionId(value) {
+  const id = clampText(value, MAX_TEXT.versionId);
+  return /^[a-zA-Z0-9_-]{1,50}$/.test(id) ? id : '';
+}
+
+function normalizeStepKey(value) {
+  const key = clampText(value, 40);
+  return /^[a-z0-9_-]{1,40}$/.test(key) ? key : `step_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeGridClass(value) {
+  return ALLOWED_GRID_CLASSES.indexOf(value) >= 0 ? value : 'options-grid';
+}
+
+function sanitizeVersion(raw) {
+  const steps = (Array.isArray(raw.steps) ? raw.steps : [])
+    .slice(0, 12)
+    .map((step, idx) => ({
+      key: normalizeStepKey(step && step.key) || `step_${idx + 1}`,
+      emoji: clampText(step && step.emoji, 16) || '✨',
+      title: clampText(step && step.title, MAX_TEXT.stepTitle),
+      subtitle: clampText(step && step.subtitle, MAX_TEXT.stepSubtitle),
+      gridClass: normalizeGridClass(step && step.gridClass),
+      options: (Array.isArray(step && step.options) ? step.options : [])
+        .slice(0, 12)
+        .map(opt => clampText(opt, MAX_TEXT.option))
+        .filter(opt => opt.trim().length > 0)
+    }))
+    .filter(step => step.title.trim().length > 0);
+
+  return {
+    id: normalizeVersionId(raw && raw.id) || `v${Date.now().toString(36)}`,
+    name: clampText(raw && raw.name, MAX_TEXT.name) || 'Sin nombre',
+    inviteTitle: clampText(raw && raw.inviteTitle, MAX_TEXT.inviteTitle) || defaultVersion.inviteTitle,
+    inviteSubtitle: clampText(raw && raw.inviteSubtitle, MAX_TEXT.inviteSubtitle) || defaultVersion.inviteSubtitle,
+    notePlaceholder: clampText(raw && raw.notePlaceholder, MAX_TEXT.notePlaceholder) || defaultVersion.notePlaceholder,
+    noMessages: (Array.isArray(raw && raw.noMessages) ? raw.noMessages : [])
+      .slice(0, 20)
+      .map(msg => clampText(msg, MAX_TEXT.noMessage))
+      .filter(msg => msg.trim().length > 0),
+    steps: steps.length ? steps : JSON.parse(JSON.stringify(defaultVersion.steps))
+  };
+}
+
 function buildConfigJsContent() {
+  // Solo versiones + hash del PIN: los secrets de Telegram nunca se exportan ni se suben a git.
   const configObject = {
-    telegramBotToken: config.telegramBotToken || '',
-    telegramChatId: config.telegramChatId || '',
-    versions: config.versions || []
+    adminPinHash: normalizePinHash(config.adminPinHash),
+    versions: (config.versions || []).map(sanitizeVersion)
   };
 
-  return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
+  return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\n// NO contiene tokens ni secrets — esos viven solo en el navegador.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
 }
 
 function exportConfigFile() {
@@ -318,9 +460,12 @@ function splitEmojiAndText(option) {
 }
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return String(text == null ? '' : text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function showScreen(screen) {
@@ -344,480 +489,38 @@ function updateVersionSelector() {
   });
 }
 
-const EMOJI_LIST = [
-  { emoji: '🍽️', keywords: 'comer cena plato' },
-  { emoji: '🍕', keywords: 'pizza comida' },
-  { emoji: '🍔', keywords: 'hamburguesa comida' },
-  { emoji: '🍟', keywords: 'papas fritas comida' },
-  { emoji: '🌭', keywords: 'perrito caliente comida' },
-  { emoji: '🍿', keywords: 'pochoclo cine' },
-  { emoji: '🧂', keywords: 'sal' },
-  { emoji: '🥐', keywords: 'croissant pan' },
-  { emoji: '🥖', keywords: 'pan baguette' },
-  { emoji: '🥨', keywords: 'pretzel' },
-  { emoji: '🥯', keywords: 'bagel' },
-  { emoji: '🥞', keywords: 'panqueques desayuno' },
-  { emoji: '🧇', keywords: 'waffle' },
-  { emoji: '🧀', keywords: 'queso' },
-  { emoji: '🍖', keywords: 'carne' },
-  { emoji: '🍗', keywords: 'pollo' },
-  { emoji: '🥩', keywords: 'bife carne' },
-  { emoji: '🥓', keywords: 'panceta' },
-  { emoji: '🥪', keywords: 'sandwich' },
-  { emoji: '🌮', keywords: 'taco mexicano' },
-  { emoji: '🌯', keywords: 'burrito mexicano' },
-  { emoji: '🫔', keywords: 'tamal' },
-  { emoji: '🥙', keywords: 'kebab' },
-  { emoji: '🧆', keywords: 'falafel' },
-  { emoji: '🥚', keywords: 'huevo' },
-  { emoji: '🍳', keywords: 'huevos cocinar' },
-  { emoji: '🥘', keywords: 'paella' },
-  { emoji: '🍲', keywords: 'sopa' },
-  { emoji: '🫕', keywords: 'fondue' },
-  { emoji: '🥣', keywords: 'bowl' },
-  { emoji: '🥗', keywords: 'ensalada' },
-  { emoji: '🧈', keywords: 'manteca' },
-  { emoji: '🥫', keywords: 'lata' },
-  { emoji: '🍱', keywords: 'bento sushi' },
-  { emoji: '🍘', keywords: 'galleta arroz' },
-  { emoji: '🍙', keywords: 'onigiri' },
-  { emoji: '🍚', keywords: 'arroz' },
-  { emoji: '🍛', keywords: 'curry' },
-  { emoji: '🍜', keywords: 'ramen fideos' },
-  { emoji: '🍝', keywords: 'fideos pasta' },
-  { emoji: '🍠', keywords: 'batata' },
-  { emoji: '🍢', keywords: 'oden' },
-  { emoji: '🍣', keywords: 'sushi' },
-  { emoji: '🍤', keywords: 'langostino' },
-  { emoji: '🍥', keywords: 'narutomaki' },
-  { emoji: '🥮', keywords: 'pastel luna' },
-  { emoji: '🍡', keywords: 'dango' },
-  { emoji: '🥟', keywords: 'empanada gyoza' },
-  { emoji: '🥠', keywords: 'galleta suerte' },
-  { emoji: '🥡', keywords: 'comida china para llevar' },
-  { emoji: '🍦', keywords: 'helado' },
-  { emoji: '🍧', keywords: 'raspado hielo' },
-  { emoji: '🍨', keywords: 'helado' },
-  { emoji: '🍩', keywords: 'donut' },
-  { emoji: '🍪', keywords: 'galleta' },
-  { emoji: '🎂', keywords: 'torta cumpleaños' },
-  { emoji: '🍰', keywords: 'pastel torta' },
-  { emoji: '🧁', keywords: 'cupcake' },
-  { emoji: '🥧', keywords: 'tarta' },
-  { emoji: '🍫', keywords: 'chocolate' },
-  { emoji: '🍬', keywords: 'caramelo' },
-  { emoji: '🍭', keywords: 'chupetin' },
-  { emoji: '🍮', keywords: 'flan' },
-  { emoji: '🍯', keywords: 'miel' },
-  { emoji: '🍼', keywords: 'mamadera' },
-  { emoji: '🥛', keywords: 'leche' },
-  { emoji: '☕', keywords: 'cafe' },
-  { emoji: '🫖', keywords: 'te' },
-  { emoji: '🍵', keywords: 'te' },
-  { emoji: '🍶', keywords: 'sake' },
-  { emoji: '🍾', keywords: 'champagne celebrar' },
-  { emoji: '🍷', keywords: 'vino' },
-  { emoji: '🍸', keywords: 'coctel' },
-  { emoji: '🍹', keywords: 'trago' },
-  { emoji: '🍺', keywords: 'cerveza' },
-  { emoji: '🍻', keywords: 'cerveza brindis' },
-  { emoji: '🥂', keywords: 'brindis copa' },
-  { emoji: '🥃', keywords: 'whisky' },
-  { emoji: '🫗', keywords: 'verter' },
-  { emoji: '🥤', keywords: 'vaso' },
-  { emoji: '🧋', keywords: 'bubble tea' },
-  { emoji: '🧃', keywords: 'jugo' },
-  { emoji: '🧉', keywords: 'mate' },
-  { emoji: '🍴', keywords: 'cubiertos' },
-  { emoji: '🥄', keywords: 'cuchara' },
-  { emoji: '🎬', keywords: 'cine pelicula' },
-  { emoji: '🎤', keywords: 'karaoke cantar' },
-  { emoji: '🎧', keywords: 'musica auriculares' },
-  { emoji: '🎼', keywords: 'musica partitura' },
-  { emoji: '🎵', keywords: 'musica nota' },
-  { emoji: '🎶', keywords: 'musica notas' },
-  { emoji: '🎹', keywords: 'piano' },
-  { emoji: '🥁', keywords: 'bateria' },
-  { emoji: '🎷', keywords: 'saxo' },
-  { emoji: '🎸', keywords: 'guitarra' },
-  { emoji: '🎺', keywords: 'trompeta' },
-  { emoji: '🎻', keywords: 'violin' },
-  { emoji: '🎮', keywords: 'juego videojuego' },
-  { emoji: '🕹️', keywords: 'joystick' },
-  { emoji: '🎰', keywords: 'casino' },
-  { emoji: '🎲', keywords: 'dado' },
-  { emoji: '🧩', keywords: 'rompecabezas' },
-  { emoji: '🧸', keywords: 'oso peluche' },
-  { emoji: '🪀', keywords: 'yoyo' },
-  { emoji: '🎯', keywords: 'diana' },
-  { emoji: '🎳', keywords: 'bowling' },
-  { emoji: '🏓', keywords: 'ping pong' },
-  { emoji: '🏸', keywords: 'badminton' },
-  { emoji: '🥊', keywords: 'boxeo' },
-  { emoji: '🥋', keywords: 'karate' },
-  { emoji: '⛸️', keywords: 'patinaje hielo' },
-  { emoji: '🎣', keywords: 'pesca' },
-  { emoji: '🎨', keywords: 'pintura arte' },
-  { emoji: '🎭', keywords: 'teatro mascara' },
-  { emoji: '🎪', keywords: 'circo' },
-  { emoji: '🎢', keywords: 'montaña rusa' },
-  { emoji: '🎡', keywords: 'rueda' },
-  { emoji: '🎠', keywords: 'calesita' },
-  { emoji: '🏖️', keywords: 'playa' },
-  { emoji: '🏝️', keywords: 'isla' },
-  { emoji: '🏜️', keywords: 'desierto' },
-  { emoji: '🌋', keywords: 'volcan' },
-  { emoji: '⛰️', keywords: 'montaña' },
-  { emoji: '🏕️', keywords: 'camping' },
-  { emoji: '🏠', keywords: 'casa' },
-  { emoji: '🏡', keywords: 'casa jardin' },
-  { emoji: '🏩', keywords: 'hotel amor' },
-  { emoji: '🏨', keywords: 'hotel' },
-  { emoji: '⛪', keywords: 'iglesia' },
-  { emoji: '🕌', keywords: 'mezquita' },
-  { emoji: '🛕', keywords: 'templo' },
-  { emoji: '🕍', keywords: 'sinagoga' },
-  { emoji: '⛩️', keywords: 'santuario' },
-  { emoji: '🌃', keywords: 'noche ciudad' },
-  { emoji: '🌆', keywords: 'atardecer ciudad' },
-  { emoji: '🌇', keywords: 'atardecer' },
-  { emoji: '🌉', keywords: 'puente noche' },
-  { emoji: '♨️', keywords: 'aguas termales' },
-  { emoji: '🎑', keywords: 'luna' },
-  { emoji: '💈', keywords: 'barberia' },
-  { emoji: '🚗', keywords: 'auto' },
-  { emoji: '🚕', keywords: 'taxi' },
-  { emoji: '🚙', keywords: 'camioneta' },
-  { emoji: '🚌', keywords: 'colectivo' },
-  { emoji: '🚎', keywords: 'trolebus' },
-  { emoji: '🏎️', keywords: 'auto carrera' },
-  { emoji: '🚓', keywords: 'policia' },
-  { emoji: '🚑', keywords: 'ambulancia' },
-  { emoji: '🚒', keywords: 'bomberos' },
-  { emoji: '🚐', keywords: 'van' },
-  { emoji: '🚚', keywords: 'camion' },
-  { emoji: '🚜', keywords: 'tractor' },
-  { emoji: '🛵', keywords: 'moto scooter' },
-  { emoji: '🏍️', keywords: 'moto' },
-  { emoji: '🚲', keywords: 'bicicleta' },
-  { emoji: '🛴', keywords: 'monopatin' },
-  { emoji: '🚂', keywords: 'tren' },
-  { emoji: '🚆', keywords: 'tren' },
-  { emoji: '🚇', keywords: 'subte' },
-  { emoji: '🚊', keywords: 'tren' },
-  { emoji: '🚉', keywords: 'estacion' },
-  { emoji: '✈️', keywords: 'avion' },
-  { emoji: '🛫', keywords: 'despegue' },
-  { emoji: '🛬', keywords: 'aterrizaje' },
-  { emoji: '🚁', keywords: 'helicoptero' },
-  { emoji: '🚀', keywords: 'cohete' },
-  { emoji: '🛸', keywords: 'ovni' },
-  { emoji: '🚤', keywords: 'lancha' },
-  { emoji: '⛵', keywords: 'velero' },
-  { emoji: '🛳️', keywords: 'crucero' },
-  { emoji: '⛴️', keywords: 'ferry' },
-  { emoji: '🛥️', keywords: 'yate' },
-  { emoji: '⚓', keywords: 'ancla' },
-  { emoji: '🚦', keywords: 'semaforo' },
-  { emoji: '🚥', keywords: 'semaforo' },
-  { emoji: '🚧', keywords: 'obras' },
-  { emoji: '🌳', keywords: 'arbol' },
-  { emoji: '🌲', keywords: 'pino' },
-  { emoji: '🌴', keywords: 'palmera' },
-  { emoji: '🌵', keywords: 'cactus' },
-  { emoji: '🌷', keywords: 'tulipan' },
-  { emoji: '🌹', keywords: 'rosa' },
-  { emoji: '🥀', keywords: 'rosa marchita' },
-  { emoji: '🌺', keywords: 'flor' },
-  { emoji: '🌸', keywords: 'cerezo flor' },
-  { emoji: '🌼', keywords: 'flor' },
-  { emoji: '🌻', keywords: 'girasol' },
-  { emoji: '🌞', keywords: 'sol' },
-  { emoji: '🌝', keywords: 'luna llena' },
-  { emoji: '🌛', keywords: 'luna' },
-  { emoji: '🌜', keywords: 'luna' },
-  { emoji: '🌚', keywords: 'luna nueva' },
-  { emoji: '🌕', keywords: 'luna' },
-  { emoji: '🌖', keywords: 'luna' },
-  { emoji: '🌗', keywords: 'luna' },
-  { emoji: '🌘', keywords: 'luna' },
-  { emoji: '🌑', keywords: 'luna' },
-  { emoji: '🌒', keywords: 'luna' },
-  { emoji: '🌓', keywords: 'luna' },
-  { emoji: '🌔', keywords: 'luna' },
-  { emoji: '🌙', keywords: 'luna' },
-  { emoji: '🌎', keywords: 'mundo' },
-  { emoji: '🌍', keywords: 'mundo' },
-  { emoji: '🌏', keywords: 'mundo' },
-  { emoji: '💫', keywords: 'estrella' },
-  { emoji: '⭐', keywords: 'estrella' },
-  { emoji: '🌟', keywords: 'estrella brillante' },
-  { emoji: '✨', keywords: 'brillo' },
-  { emoji: '⚡', keywords: 'rayo' },
-  { emoji: '🔥', keywords: 'fuego' },
-  { emoji: '💥', keywords: 'explosion' },
-  { emoji: '☀️', keywords: 'sol' },
-  { emoji: '🌤️', keywords: 'sol nube' },
-  { emoji: '⛅', keywords: 'nublado' },
-  { emoji: '🌦️', keywords: 'lluvia sol' },
-  { emoji: '🌧️', keywords: 'lluvia' },
-  { emoji: '⛈️', keywords: 'tormenta' },
-  { emoji: '🌩️', keywords: 'trueno' },
-  { emoji: '🌨️', keywords: 'nieve' },
-  { emoji: '❄️', keywords: 'nieve' },
-  { emoji: '☃️', keywords: 'muñeco nieve' },
-  { emoji: '⛄', keywords: 'muñeco nieve' },
-  { emoji: '🌬️', keywords: 'viento' },
-  { emoji: '💨', keywords: 'viento' },
-  { emoji: '☁️', keywords: 'nube' },
-  { emoji: '🌈', keywords: 'arcoiris' },
-  { emoji: '☂️', keywords: 'paraguas' },
-  { emoji: '☔', keywords: 'lluvia paraguas' },
-  { emoji: '💧', keywords: 'gota' },
-  { emoji: '💦', keywords: 'agua' },
-  { emoji: '🌊', keywords: 'ola mar' },
-  { emoji: '❤️', keywords: 'corazon amor' },
-  { emoji: '🧡', keywords: 'corazon naranja' },
-  { emoji: '💛', keywords: 'corazon amarillo' },
-  { emoji: '💚', keywords: 'corazon verde' },
-  { emoji: '💙', keywords: 'corazon azul' },
-  { emoji: '💜', keywords: 'corazon violeta' },
-  { emoji: '🖤', keywords: 'corazon negro' },
-  { emoji: '🤍', keywords: 'corazon blanco' },
-  { emoji: '🤎', keywords: 'corazon marron' },
-  { emoji: '💗', keywords: 'corazon' },
-  { emoji: '💖', keywords: 'corazon brillante' },
-  { emoji: '💕', keywords: 'corazones' },
-  { emoji: '💞', keywords: 'corazones' },
-  { emoji: '💓', keywords: 'corazon' },
-  { emoji: '💘', keywords: 'corazon flecha' },
-  { emoji: '💝', keywords: 'corazon regalo' },
-  { emoji: '💟', keywords: 'corazon' },
-  { emoji: '💌', keywords: 'carta amor' },
-  { emoji: '🫶', keywords: 'corazones manos' },
-  { emoji: '❣️', keywords: 'corazon exclamacion' },
-  { emoji: '💋', keywords: 'beso' },
-  { emoji: '😊', keywords: 'feliz' },
-  { emoji: '🥰', keywords: 'amor' },
-  { emoji: '😍', keywords: 'encanto' },
-  { emoji: '🤩', keywords: 'estrella' },
-  { emoji: '😘', keywords: 'beso' },
-  { emoji: '😗', keywords: 'beso' },
-  { emoji: '☺️', keywords: 'sonrisa' },
-  { emoji: '😚', keywords: 'beso' },
-  { emoji: '😙', keywords: 'beso' },
-  { emoji: '😋', keywords: 'rico' },
-  { emoji: '😛', keywords: 'lengua' },
-  { emoji: '😜', keywords: 'travieso' },
-  { emoji: '🤪', keywords: 'loco' },
-  { emoji: '😝', keywords: 'lengua' },
-  { emoji: '🤑', keywords: 'dinero' },
-  { emoji: '🤗', keywords: 'abrazo' },
-  { emoji: '🤭', keywords: 'risa' },
-  { emoji: '🫢', keywords: 'sorpresa' },
-  { emoji: '🫣', keywords: 'ojo' },
-  { emoji: '🤫', keywords: 'silencio' },
-  { emoji: '🤔', keywords: 'pensar' },
-  { emoji: '🫡', keywords: 'saludo' },
-  { emoji: '🤐', keywords: 'callado' },
-  { emoji: '🤨', keywords: 'duda' },
-  { emoji: '😐', keywords: 'neutral' },
-  { emoji: '😑', keywords: 'serio' },
-  { emoji: '😶', keywords: 'silencio' },
-  { emoji: '😏', keywords: 'picaro' },
-  { emoji: '😒', keywords: 'enojado' },
-  { emoji: '🙄', keywords: 'ojos' },
-  { emoji: '😬', keywords: 'nervioso' },
-  { emoji: '🤥', keywords: 'mentira' },
-  { emoji: '😔', keywords: 'triste' },
-  { emoji: '😟', keywords: 'preocupado' },
-  { emoji: '😕', keywords: 'confundido' },
-  { emoji: '🙁', keywords: 'triste' },
-  { emoji: '☹️', keywords: 'triste' },
-  { emoji: '😣', keywords: 'sufrimiento' },
-  { emoji: '😖', keywords: 'angustia' },
-  { emoji: '😫', keywords: 'cansado' },
-  { emoji: '😩', keywords: 'cansado' },
-  { emoji: '🥺', keywords: 'suplica' },
-  { emoji: '😢', keywords: 'llorar' },
-  { emoji: '😭', keywords: 'llorar mucho' },
-  { emoji: '😤', keywords: 'enojado' },
-  { emoji: '😠', keywords: 'enojado' },
-  { emoji: '😡', keywords: 'furioso' },
-  { emoji: '🤬', keywords: 'insulto' },
-  { emoji: '😳', keywords: 'sonrojo' },
-  { emoji: '🥵', keywords: 'calor' },
-  { emoji: '🥶', keywords: 'frio' },
-  { emoji: '😱', keywords: 'susto' },
-  { emoji: '😨', keywords: 'miedo' },
-  { emoji: '😰', keywords: 'nervioso' },
-  { emoji: '😥', keywords: 'aliviado' },
-  { emoji: '😓', keywords: 'sudor' },
-  { emoji: '⌚', keywords: 'reloj' },
-  { emoji: '🕖', keywords: 'siete hora' },
-  { emoji: '🕗', keywords: 'ocho hora' },
-  { emoji: '🕘', keywords: 'nueve hora' },
-  { emoji: '🕙', keywords: 'diez hora' },
-  { emoji: '🕚', keywords: 'once hora' },
-  { emoji: '🕛', keywords: 'doce hora' },
-  { emoji: '🕜', keywords: 'hora' },
-  { emoji: '🕝', keywords: 'hora' },
-  { emoji: '🕞', keywords: 'hora' },
-  { emoji: '🕟', keywords: 'hora' },
-  { emoji: '🕠', keywords: 'hora' },
-  { emoji: '🕡', keywords: 'hora' },
-  { emoji: '🕢', keywords: 'hora' },
-  { emoji: '🕣', keywords: 'ocho y media hora' },
-  { emoji: '🕤', keywords: 'hora' },
-  { emoji: '🕥', keywords: 'hora' },
-  { emoji: '🕦', keywords: 'hora' },
-  { emoji: '🕧', keywords: 'hora' },
-  { emoji: '⏰', keywords: 'despertador' },
-  { emoji: '📱', keywords: 'celular' },
-  { emoji: '💻', keywords: 'computadora' },
-  { emoji: '📷', keywords: 'camara' },
-  { emoji: '📸', keywords: 'camara foto' },
-  { emoji: '📹', keywords: 'video' },
-  { emoji: '🎥', keywords: 'camara cine' },
-  { emoji: '📽️', keywords: 'proyector' },
-  { emoji: '🎞️', keywords: 'pelicula' },
-  { emoji: '📞', keywords: 'telefono' },
-  { emoji: '☎️', keywords: 'telefono' },
-  { emoji: '📟', keywords: 'bip' },
-  { emoji: '📠', keywords: 'fax' },
-  { emoji: '📺', keywords: 'tele' },
-  { emoji: '📻', keywords: 'radio' },
-  { emoji: '🎙️', keywords: 'microfono' },
-  { emoji: '🎚️', keywords: 'volumen' },
-  { emoji: '🎛️', keywords: 'perillas' },
-  { emoji: '🧭', keywords: 'brujula' },
-  { emoji: '⏱️', keywords: 'cronometro' },
-  { emoji: '⏲️', keywords: 'temporizador' },
-  { emoji: '⏳', keywords: 'reloj arena' },
-  { emoji: '💡', keywords: 'lampara idea' },
-  { emoji: '🔦', keywords: 'linterna' },
-  { emoji: '🕯️', keywords: 'vela' },
-  { emoji: '🪔', keywords: 'lampara' },
-  { emoji: '🧯', keywords: 'matafuego' },
-  { emoji: '🛢️', keywords: 'barril' },
-  { emoji: '💸', keywords: 'dinero' },
-  { emoji: '💵', keywords: 'dinero' },
-  { emoji: '💴', keywords: 'dinero' },
-  { emoji: '💶', keywords: 'dinero' },
-  { emoji: '💷', keywords: 'dinero' },
-  { emoji: '💰', keywords: 'dinero' },
-  { emoji: '💳', keywords: 'tarjeta' },
-  { emoji: '💎', keywords: 'diamante' },
-  { emoji: '⚖️', keywords: 'balanza' },
-  { emoji: '🧰', keywords: 'caja herramientas' },
-  { emoji: '🔧', keywords: 'llave inglesa' },
-  { emoji: '🔨', keywords: 'martillo' },
-  { emoji: '⚒️', keywords: 'herramientas' },
-  { emoji: '🛠️', keywords: 'herramientas' },
-  { emoji: '🧲', keywords: 'iman' },
-  { emoji: '🧪', keywords: 'tubo ensayo' },
-  { emoji: '🧫', keywords: 'placa petri' },
-  { emoji: '🧬', keywords: 'adn' },
-  { emoji: '🔬', keywords: 'microscopio' },
-  { emoji: '🔭', keywords: 'telescopio' },
-  { emoji: '📡', keywords: 'antena' },
-  { emoji: '💉', keywords: 'jeringa' },
-  { emoji: '🩸', keywords: 'sangre' },
-  { emoji: '💊', keywords: 'pastilla' },
-  { emoji: '🩹', keywords: 'curita' },
-  { emoji: '🩺', keywords: 'fonendoscopio' },
-  { emoji: '🌡️', keywords: 'termometro' },
-  { emoji: '🚽', keywords: 'inodoro' },
-  { emoji: '🚿', keywords: 'ducha' },
-  { emoji: '🛁', keywords: 'bañera' },
-  { emoji: '🪥', keywords: 'cepillo dientes' },
-  { emoji: '🪒', keywords: 'maquina afeitar' },
-  { emoji: '🧴', keywords: 'crema' },
-  { emoji: '🧷', keywords: 'alfiler' },
-  { emoji: '🧹', keywords: 'escoba' },
-  { emoji: '🧺', keywords: 'canasto' },
-  { emoji: '🧻', keywords: 'papel higienico' },
-  { emoji: '🧼', keywords: 'jabon' },
-  { emoji: '🧽', keywords: 'esponja' },
-  { emoji: '🛒', keywords: 'carrito compras' },
-  { emoji: '🚬', keywords: 'cigarrillo' },
-  { emoji: '⚰️', keywords: 'ataud' },
-  { emoji: '🪦', keywords: 'lapida' },
-  { emoji: '⚱️', keywords: 'urna' },
-  { emoji: '🗿', keywords: 'moai' },
-  { emoji: '🪧', keywords: 'cartel' },
-  { emoji: '🏧', keywords: 'cajero' },
-  { emoji: '💭', keywords: 'pensamiento' },
-  { emoji: '💬', keywords: 'globo dialogo' },
-  { emoji: '💯', keywords: 'cien' },
-  { emoji: '✅', keywords: 'check ok' },
-  { emoji: '❌', keywords: 'cruz no' },
-  { emoji: '❓', keywords: 'pregunta' },
-  { emoji: '❗', keywords: 'exclamacion' },
-  { emoji: '⭕', keywords: 'circulo' },
-  { emoji: '🚫', keywords: 'prohibido' },
-  { emoji: '💢', keywords: 'enojo' },
-  { emoji: '📛', keywords: 'nombre' },
-  { emoji: '🚷', keywords: 'prohibido peatones' },
-  { emoji: '🚯', keywords: 'no basura' },
-  { emoji: '🚳', keywords: 'no bicicleta' },
-  { emoji: '🚱', keywords: 'agua no potable' },
-  { emoji: '📵', keywords: 'no celular' },
-  { emoji: '🔞', keywords: 'mayores' },
-  { emoji: '☢️', keywords: 'radiactivo' },
-  { emoji: '☣️', keywords: 'riesgo biologico' },
-  { emoji: '⬆️', keywords: 'arriba' },
-  { emoji: '↗️', keywords: 'arriba derecha' },
-  { emoji: '➡️', keywords: 'derecha' },
-  { emoji: '↘️', keywords: 'abajo derecha' },
-  { emoji: '⬇️', keywords: 'abajo' },
-  { emoji: '↙️', keywords: 'abajo izquierda' },
-  { emoji: '⬅️', keywords: 'izquierda' },
-  { emoji: '↖️', keywords: 'arriba izquierda' },
-  { emoji: '↕️', keywords: 'arriba abajo' },
-  { emoji: '↔️', keywords: 'izquierda derecha' },
-  { emoji: '↩️', keywords: 'volver' },
-  { emoji: '↪️', keywords: 'retornar' },
-  { emoji: '⤴️', keywords: 'curva arriba' },
-  { emoji: '⤵️', keywords: 'curva abajo' },
-  { emoji: '🔀', keywords: 'aleatorio' },
-  { emoji: '🔁', keywords: 'repetir' },
-  { emoji: '🔂', keywords: 'repetir una' },
-  { emoji: '🔄', keywords: 'flechas circulo' },
-  { emoji: '🔃', keywords: 'flechas verticales' },
-  { emoji: '➕', keywords: 'mas' },
-  { emoji: '➖', keywords: 'menos' },
-  { emoji: '➗', keywords: 'dividir' },
-  { emoji: '✖️', keywords: 'multiplicar' },
-  { emoji: '💲', keywords: 'dolar' },
-  { emoji: '💱', keywords: 'cambio moneda' },
-  { emoji: '™️', keywords: 'marca' },
-  { emoji: '©️', keywords: 'copyright' },
-  { emoji: '®️', keywords: 'registrado' },
-  { emoji: '〰️', keywords: 'onda' },
-  { emoji: '➰', keywords: 'lazo' },
-  { emoji: '➿', keywords: 'lazos' },
-  { emoji: '✔️', keywords: 'tilde' },
-  { emoji: '☑️', keywords: 'casilla' },
-  { emoji: '🔘', keywords: 'boton radio' },
-  { emoji: '⚪', keywords: 'circulo blanco' },
-  { emoji: '⚫', keywords: 'circulo negro' },
-  { emoji: '🔴', keywords: 'circulo rojo' },
-  { emoji: '🔵', keywords: 'circulo azul' },
-  { emoji: '🟠', keywords: 'circulo naranja' },
-  { emoji: '🟡', keywords: 'circulo amarillo' },
-  { emoji: '🟢', keywords: 'circulo verde' },
-  { emoji: '🟣', keywords: 'circulo violeta' },
-  { emoji: '🟤', keywords: 'circulo marron' },
-  { emoji: '⬜', keywords: 'cuadrado blanco' },
-  { emoji: '⬛', keywords: 'cuadrado negro' },
-  { emoji: '🟥', keywords: 'cuadrado rojo' },
-  { emoji: '🟧', keywords: 'cuadrado naranja' },
-  { emoji: '🟨', keywords: 'cuadrado amarillo' },
-  { emoji: '🟩', keywords: 'cuadrado verde' },
-  { emoji: '🟦', keywords: 'cuadrado azul' },
-  { emoji: '🟪', keywords: 'cuadrado violeta' },
-  { emoji: '🟫', keywords: 'cuadrado marron' }
+// EMOJI_LIST is loaded from emojis.js (generated by generate-emoji-data.mjs)
+
+// Popular emojis shown by default (no search). Subset kept small for fast render.
+const POPULAR_EMOJIS = [
+  // Caras y emociones
+  '😀','😂','🥰','😍','😊','😎','🥺','😢','😭','😤','🤔','😏','😘','🤗','🥳','🤩','😇','😈','🙄','😴',
+  '😌','😬','🙃','😱','🤩','😝','😜','🤪','😇','🤗','🤭','🤫','🤥','😶','😐','😑','😯','😦','😧','😮',
+  '😲','🥱','😴','🤤','😪','😮‍💨','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','😮','😯',
+  // Corazones y amor
+  '❤️','💖','💕','💗','💘','💝','🖤','💔','💛','💚','💙','💜','🤍','🤎','🧡','🫶','💋','💌','💐','🌹',
+  '💍','🥰','😍','😘','😻','💑','💏','🫂','❣️','💞','💓','💟','❤️‍🔥','❤️‍🩹','💋','🩷','🩵',
+  // Fiesta y celebración
+  '🎉','🎊','🎁','🎈','🎶','🎵','🎸','🎤','🎧','🎬','🎭','🎪','🎨','🎮','🕹️','🧩','🎲','🏆','🥇','⚽',
+  '🎂','🍰','🥂','🍾','🍻','🎯','🎳','🎰','🪅','🪩','🎈','🎀','🪄','✨','🌟','💫','⭐','🎇','🎆','🕯️',
+  // Comida y bebida
+  '🍕','🍔','🍟','🌮','🍣','🍜','🍝','🍰','🍩','🍪','🍫','🍦','☕','🍵','🍷','🍺','🥂','🧋','🧃','🧉',
+  '🥐','🥪','🥗','🍝','🍖','🍗','🥩','🍤','🦞','🦀','🦑','🐙','🦐','🍦','🧁','🍮','🍬','🍭','🍯','🧂',
+  // Animales y naturaleza
+  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦋','🌸',
+  '🌺','🌻','🌷','🌹','🍀','🌿','🌵','🌴','🌳','🍁','🍂','🌙','⭐','✨','🔥','🌈','☀️','🌤️','🌊','❄️',
+  '🦄','🐝','🐞','🕷️','🐢','🐍','🦎','🐙','🐠','🐟','🐬','🐳','🦈','🐊','🦩','🦚','🦜','🕊️','🦅','🦉',
+  // Viajes y lugares
+  '🚗','✈️','🚀','🛸','🚁','🚂','⛵','🏠','🏢','🏰','🗼','🗽','⛩️','🎡','🎢','🏖️','🏔️','🌋','🌍','🌎',
+  '🗺️','🧭','🏕️','🏖️','🏜️','🏝️','🏞️','🏟️','🏛️','🕌','🛕','⛪','🕍','⛩️','🗻','🏔️','🌋','⛰️','🌄','🌅',
+  // Objetos y símbolos
+  '📱','💻','⌚','📷','🎥','📺','💡','🔋','🔑','📝','📌','📎','✂️','🛒','💰','💎','🧪','🔬','🔭','📡',
+  '🔥','💧','⚡','🌪️','🌊','🍀','🌈','☀️','🌙','🪐','🌍','⭐','✨','💤','💢','💥','💦','💨','🕳️','💣',
+  // Manos y gestos
+  '👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️',
+  '👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤝','👐','🤲','🫱','🫲','🫳','🫴','🙏','💪','🦾','🫵',
+  // Extra útiles
+  '✅','❌','⚠️','❓','❗','💯','🔄','⏭️','⏮️','⏸️','▶️','⏹️','⏺️','📸','🗓️','📅','⏰','🔔','🔕','📣'
 ];
 
 function createEmojiPicker(currentEmoji, onSelect) {
@@ -834,17 +537,36 @@ function createEmojiPicker(currentEmoji, onSelect) {
     const term = filter.toLowerCase().trim();
     picker.querySelectorAll('button.emoji-btn').forEach(b => b.remove());
 
-    EMOJI_LIST.forEach(item => {
-      if (term && !item.emoji.includes(term) && !item.keywords.includes(term)) return;
+    if (!term) {
+      // Show popular emojis by default for fast render
+      POPULAR_EMOJIS.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'emoji-btn';
+        btn.textContent = emoji;
+        btn.title = emoji;
+        if (emoji === currentEmoji) btn.classList.add('selected');
+        btn.addEventListener('click', () => onSelect(emoji));
+        picker.appendChild(btn);
+      });
+      return;
+    }
+
+    // Search: filter all emojis, cap at 300 for performance
+    let count = 0;
+    const MAX_RESULTS = 300;
+    for (const item of EMOJI_LIST) {
+      if (!item.name.includes(term) && !(item.keywords && item.keywords.includes(term))) continue;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'emoji-btn';
       btn.textContent = item.emoji;
-      btn.title = item.keywords;
+      btn.title = item.name;
       if (item.emoji === currentEmoji) btn.classList.add('selected');
       btn.addEventListener('click', () => onSelect(item.emoji));
       picker.appendChild(btn);
-    });
+      if (++count >= MAX_RESULTS) break;
+    }
   }
 
   search.addEventListener('input', () => renderButtons(search.value));
@@ -1094,26 +816,26 @@ function readStepsFromEditor() {
     const subtitleEl = child.querySelector('[data-field="subtitle"]');
     const gridClassEl = child.querySelector('[data-field="gridClass"]');
 
-    const title = titleEl ? titleEl.value.trim() : '';
+    const title = clampText(titleEl ? titleEl.value.trim() : '', MAX_TEXT.stepTitle);
     if (!title) return;
 
     const options = [];
     child.querySelectorAll('.step-editor-option').forEach(optRow => {
       const emojiEl = optRow.querySelector('.step-editor-option-emoji');
       const textEl = optRow.querySelector('input');
-      const text = textEl ? textEl.value.trim() : '';
+      const text = clampText(textEl ? textEl.value.trim() : '', MAX_TEXT.option);
       if (!text) return;
-      const emoji = emojiEl ? emojiEl.textContent.trim() : '✨';
+      const emoji = clampText(emojiEl ? emojiEl.textContent.trim() : '✨', 16) || '✨';
       options.push(`${text} ${emoji}`.trim());
     });
 
     steps.push({
-      key: child.dataset.key || `step_${Math.random().toString(36).substr(2, 8)}`,
-      emoji: emojiEl ? emojiEl.textContent.trim() : '✨',
+      key: normalizeStepKey(child.dataset.key),
+      emoji: clampText(emojiEl ? emojiEl.textContent.trim() : '✨', 16) || '✨',
       title,
-      subtitle: subtitleEl ? subtitleEl.value.trim() : '',
-      gridClass: gridClassEl ? gridClassEl.value : 'options-grid',
-      options: options.length ? options : ['']
+      subtitle: clampText(subtitleEl ? subtitleEl.value.trim() : '', MAX_TEXT.stepSubtitle),
+      gridClass: normalizeGridClass(gridClassEl ? gridClassEl.value : 'options-grid'),
+      options: options.length ? options.slice(0, 12) : ['']
     });
   });
   return steps;
@@ -1121,36 +843,43 @@ function readStepsFromEditor() {
 
 function fillConfigForm() {
   const version = config.versions[editingVersionIndex] || config.versions[0];
+  const creds = loadTelegramCreds();
 
   cfgInviteTitle.value = version.inviteTitle;
   cfgInviteSubtitle.value = version.inviteSubtitle;
   cfgNotePlaceholder.value = version.notePlaceholder;
   cfgNoMessages.value = version.noMessages.join('\n');
-  cfgTelegramBotToken.value = config.telegramBotToken || '';
-  cfgTelegramChatId.value = config.telegramChatId || '';
+  cfgTelegramBotToken.value = creds.botToken;
+  cfgTelegramChatId.value = creds.chatId;
   cfgVersionId.value = version.id;
   cfgVersionName.value = version.name;
   cfgGitHubToken.value = loadGitHubToken() || '';
 
   updateVersionSelector();
   renderStepsEditor();
+  renderLastSaved();
 }
 
 function readConfigForm() {
   const version = config.versions[editingVersionIndex] || config.versions[0];
 
-  version.id = cfgVersionId.value.trim() || version.id;
-  version.name = cfgVersionName.value.trim() || version.name;
-  version.inviteTitle = cfgInviteTitle.value.trim() || defaultVersion.inviteTitle;
-  version.inviteSubtitle = cfgInviteSubtitle.value.trim() || defaultVersion.inviteSubtitle;
-  version.notePlaceholder = cfgNotePlaceholder.value.trim() || defaultVersion.notePlaceholder;
-  version.noMessages = parseNoMessages(cfgNoMessages.value);
+  version.id = normalizeVersionId(cfgVersionId.value.trim()) || version.id;
+  version.name = clampText(cfgVersionName.value.trim() || version.name, MAX_TEXT.name);
+  version.inviteTitle = clampText(cfgInviteTitle.value.trim(), MAX_TEXT.inviteTitle) || defaultVersion.inviteTitle;
+  version.inviteSubtitle = clampText(cfgInviteSubtitle.value.trim(), MAX_TEXT.inviteSubtitle) || defaultVersion.inviteSubtitle;
+  version.notePlaceholder = clampText(cfgNotePlaceholder.value.trim(), MAX_TEXT.notePlaceholder) || defaultVersion.notePlaceholder;
+  version.noMessages = parseNoMessages(cfgNoMessages.value)
+    .slice(0, 20)
+    .map(msg => clampText(msg, MAX_TEXT.noMessage))
+    .filter(msg => msg.trim().length > 0);
   version.steps = readStepsFromEditor();
 
+  // Secrets: solo localStorage, jamás dentro del objeto que se exporta
+  saveTelegramCreds(cfgTelegramBotToken.value.trim(), cfgTelegramChatId.value.trim());
+
   return {
-    telegramBotToken: cfgTelegramBotToken.value.trim(),
-    telegramChatId: cfgTelegramChatId.value.trim(),
-    versions: config.versions
+    adminPinHash: normalizePinHash(config.adminPinHash),
+    versions: config.versions.map(sanitizeVersion)
   };
 }
 
@@ -1179,6 +908,99 @@ function exitConfigMode() {
   window.history.replaceState({}, '', url.toString());
 }
 
+// ── PIN del editor de config ──────────────────────────────────────
+async function hashPin(pin) {
+  const raw = String(pin || '');
+  if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+    const data = new TextEncoder().encode(raw);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  // Fallback débil solo si el navegador no tiene WebCrypto
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    h = ((h << 5) + h + raw.charCodeAt(i)) | 0;
+  }
+  return ('00000000' + (h >>> 0).toString(16)).slice(-8) + raw.length.toString(16);
+}
+
+function isConfigUnlocked() {
+  try {
+    return sessionStorage.getItem('dateConfigUnlocked') === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+function unlockConfigSession() {
+  try {
+    sessionStorage.setItem('dateConfigUnlocked', '1');
+  } catch (e) {
+    // ignorar
+  }
+}
+
+function showConfigPanel() {
+  const gate = document.getElementById('config-gate');
+  const panel = document.getElementById('config-panel');
+  if (gate) gate.classList.add('is-hidden');
+  if (panel) panel.classList.remove('is-hidden');
+}
+
+function showConfigGate() {
+  const gate = document.getElementById('config-gate');
+  const panel = document.getElementById('config-panel');
+  const hint = document.getElementById('config-gate-hint');
+  const confirmInput = document.getElementById('config-pin-confirm');
+  const hasPin = !!normalizePinHash(config.adminPinHash);
+
+  if (panel) panel.classList.add('is-hidden');
+  if (gate) gate.classList.remove('is-hidden');
+
+  if (hint) {
+    hint.textContent = hasPin
+      ? 'Entrá el PIN para editar la config.'
+      : 'Primera vez: creá un PIN para proteger este panel.';
+  }
+  if (confirmInput) {
+    confirmInput.classList.toggle('is-hidden', hasPin);
+  }
+}
+
+async function handleConfigPinSubmit() {
+  const pinInput = document.getElementById('config-pin-input');
+  const confirmInput = document.getElementById('config-pin-confirm');
+  const pin = pinInput ? pinInput.value : '';
+
+  if (!pin || pin.length < 4) {
+    alert('El PIN necesita al menos 4 caracteres.');
+    return;
+  }
+
+  const hasPin = !!normalizePinHash(config.adminPinHash);
+
+  if (!hasPin) {
+    const confirm = confirmInput ? confirmInput.value : '';
+    if (pin !== confirm) {
+      alert('Los PIN no coinciden.');
+      return;
+    }
+    config.adminPinHash = await hashPin(pin);
+    saveConfig();
+  } else {
+    const attempt = await hashPin(pin);
+    if (attempt !== config.adminPinHash) {
+      alert('PIN incorrecto.');
+      return;
+    }
+  }
+
+  if (pinInput) pinInput.value = '';
+  if (confirmInput) confirmInput.value = '';
+  unlockConfigSession();
+  showConfigPanel();
+}
+
 btnSaveConfig.addEventListener('click', async () => {
   config = readConfigForm();
 
@@ -1194,31 +1016,59 @@ btnSaveConfig.addEventListener('click', async () => {
 
   const token = cfgGitHubToken.value.trim();
   saveGitHubToken(token);
-  saveConfig();
+  const localOk = saveConfig();
+
+  let msg = localOk
+    ? 'Configuración guardada en este navegador ✓'
+    : '⚠ No se pudo guardar en este navegador (localStorage). La config puede perderse al cerrar la pestaña.';
 
   if (token) {
     try {
       await uploadConfigToGitHub(token);
-      alert('Configuración guardada en GitHub ✨');
+      msg += '\n\nSincronizada en GitHub ✓';
     } catch (err) {
       console.error('Error subiendo a GitHub:', err);
-      alert('No se pudo subir a GitHub. Se descargó el archivo para que lo subas manualmente.\n\n' + err.message);
       exportConfigFile();
+      msg += '\n\n⚠ No se pudo subir a GitHub: ' + err.message +
+        '\nSe descargó config.js — reemplazalo en el repo y hacé push para tenerlo en la nube.';
     }
   } else {
     exportConfigFile();
+    msg += '\n\nSe descargó config.js. Subilo a GitHub (o usá push.bat) para que esté disponible en otros dispositivos.';
   }
 
+  alert(msg);
+
+  renderLastSaved();
   applyConfig();
   exitConfigMode();
   showScreen(inviteScreen);
 });
 
 btnDefaultConfig.addEventListener('click', () => {
+  const pinHash = normalizePinHash(config.adminPinHash);
   config = JSON.parse(JSON.stringify(defaultConfig));
+  config.adminPinHash = pinHash;
   editingVersionIndex = 0;
   fillConfigForm();
 });
+
+(function bindConfigPin() {
+  const btn = document.getElementById('btn-config-pin');
+  const pinInput = document.getElementById('config-pin-input');
+  const confirmInput = document.getElementById('config-pin-confirm');
+
+  if (btn) btn.addEventListener('click', handleConfigPinSubmit);
+  [pinInput, confirmInput].forEach(input => {
+    if (!input) return;
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleConfigPinSubmit();
+      }
+    });
+  });
+})();
 
 if (cfgVersionSelector) {
   cfgVersionSelector.addEventListener('change', () => {
@@ -1426,17 +1276,17 @@ function generateWizard() {
       const wideClass = isWideLast && optIdx === step.options.length - 1 ? ' option-wide' : '';
       optionsHtml += `
         <button class="option-big${wideClass}" data-value="${escapeHtml(parts.text)}">
-          <span class="opt-emoji">${parts.emoji}</span>
+          <span class="opt-emoji">${escapeHtml(parts.emoji)}</span>
           <span>${escapeHtml(parts.text)}</span>
         </button>
       `;
     });
 
     stepDiv.innerHTML = `
-      <div class="step-emoji">${step.emoji}</div>
+      <div class="step-emoji">${escapeHtml(step.emoji)}</div>
       <h2>${escapeHtml(step.title)}</h2>
       <p class="subtitle">${escapeHtml(step.subtitle)}</p>
-      <div class="options-stack ${step.gridClass}" data-name="${step.key}">
+      <div class="options-stack ${escapeHtml(normalizeGridClass(step.gridClass))}" data-name="${escapeHtml(normalizeStepKey(step.key))}">
         ${optionsHtml}
       </div>
     `;
@@ -1507,7 +1357,8 @@ function updateWizard() {
 
   const name = steps[currentStep]?.key;
   if (name) {
-    const group = document.querySelector(`.options-stack[data-name="${name}"]`);
+    const safeName = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(name) : String(name).replace(/"/g, '\\"');
+    const group = document.querySelector(`.options-stack[data-name="${safeName}"]`);
     if (group) {
       group.querySelectorAll('.option-big').forEach(opt => {
         opt.classList.toggle('selected', opt.dataset.value === selections[name]);
@@ -1571,8 +1422,9 @@ function formatDate(date) {
 }
 
 async function sendResponseToTelegram() {
-  const token = config.telegramBotToken?.trim();
-  const chatId = config.telegramChatId?.trim();
+  const creds = loadTelegramCreds();
+  const token = creds.botToken;
+  const chatId = creds.chatId;
   if (!token || !chatId) {
     console.log('[Telegram] No hay token o chatId configurado.');
     return;
@@ -1585,11 +1437,12 @@ async function sendResponseToTelegram() {
     details += `• ${item.label}: ${item.value}\n`;
   });
 
-  const message = `💕 *Nueva respuesta* 💕\n\n` +
-    `*Versión:* ${activeVersion.name}\n` +
-    `*Fecha:* ${formatDate(new Date())}\n\n` +
+  // Texto plano: sin parse_mode para evitar inyección de Markdown con contenido del usuario
+  const message = `💕 Nueva respuesta 💕\n\n` +
+    `Versión: ${activeVersion.name}\n` +
+    `Fecha: ${formatDate(new Date())}\n\n` +
     `${details}` +
-    (note ? `\n💌 *Notita:* ${note}` : '');
+    (note ? `\n💌 Notita: ${note}` : '');
 
   try {
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -1597,8 +1450,7 @@ async function sendResponseToTelegram() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: chatId,
-        text: message,
-        parse_mode: 'Markdown'
+        text: message
       })
     });
 
@@ -2030,6 +1882,11 @@ if (isConfigMode()) {
   activeVersion = getDefaultVersion();
   generateWizard();
   showScreen(configScreen);
+  if (isConfigUnlocked()) {
+    showConfigPanel();
+  } else {
+    showConfigGate();
+  }
 } else if (activeVersion) {
   showScreen(inviteScreen);
 } else {

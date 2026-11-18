@@ -18,7 +18,24 @@
 
   <!-- Pantalla 0: Configuración -->
   <section id="config-screen" class="screen">
-    <div class="card config-card">
+    <div id="config-gate" class="card config-card">
+      <div class="emoji-big">🔐</div>
+      <h1>Panel de configuración</h1>
+      <p class="subtitle" id="config-gate-hint">Entrá el PIN para editar.</p>
+      <div class="config-group">
+        <label for="config-pin-input">PIN</label>
+        <input type="password" id="config-pin-input" placeholder="••••" autocomplete="off" maxlength="64">
+      </div>
+      <div class="config-group">
+        <label for="config-pin-confirm">Repetí el PIN</label>
+        <input type="password" id="config-pin-confirm" placeholder="Solo al crearlo" autocomplete="off" maxlength="64">
+      </div>
+      <div class="config-actions">
+        <button id="btn-config-pin" class="btn btn-primary">Entrar</button>
+      </div>
+    </div>
+
+    <div id="config-panel" class="card config-card is-hidden">
       <div class="emoji-big">⚙️</div>
       <h1>Configurá tu invitación</h1>
       <p class="subtitle">Personalizá todo para esta cita y guardá para usar después.</p>
@@ -35,27 +52,27 @@
         <div class="config-row">
           <div class="config-group">
             <label for="cfg-version-id">ID (para la URL)</label>
-            <input type="text" id="cfg-version-id" placeholder="ara">
+            <input type="text" id="cfg-version-id" placeholder="ara" maxlength="50">
           </div>
           <div class="config-group">
             <label for="cfg-version-name">Nombre</label>
-            <input type="text" id="cfg-version-name" placeholder="Ara">
+            <input type="text" id="cfg-version-name" placeholder="Ara" maxlength="80">
           </div>
         </div>
 
         <div class="config-group">
           <label for="cfg-invite-title">Título de la invitación</label>
-          <input type="text" id="cfg-invite-title" value="¿Quieres salir conmigo?">
+          <input type="text" id="cfg-invite-title" value="¿Quieres salir conmigo?" maxlength="160">
         </div>
 
         <div class="config-group">
           <label for="cfg-invite-subtitle">Subtítulo</label>
-          <input type="text" id="cfg-invite-subtitle" value="Tengo ganas de verte y quiero que coordinemos todo juntos.">
+          <input type="text" id="cfg-invite-subtitle" value="Tengo ganas de verte y quiero que coordinemos todo juntos." maxlength="240">
         </div>
 
         <div class="config-group">
           <label for="cfg-note-placeholder">Placeholder de la notita</label>
-          <input type="text" id="cfg-note-placeholder" value="Ej: me muero de ganas de verte ✨">
+          <input type="text" id="cfg-note-placeholder" value="Ej: me muero de ganas de verte ✨" maxlength="120">
         </div>
 
         <div class="config-group">
@@ -80,12 +97,13 @@ Pensalo bien 💭</textarea>
         <div class="config-group">
           <label for="cfg-telegram-bot-token">Token del bot de Telegram</label>
           <input type="password" id="cfg-telegram-bot-token" placeholder="123456789:ABC..." autocomplete="off">
+          <p class="field-hint">Se guarda solo en este navegador. Nunca se sube a git.</p>
         </div>
 
         <div class="config-group">
           <label for="cfg-telegram-chat-id">Chat ID de Telegram</label>
           <input type="text" id="cfg-telegram-chat-id" placeholder="12345678" autocomplete="off">
-          <p class="field-hint">Escribile a <code>@userinfobot</code> para obtener tu ID, o mirá la URL de un grupo.</p>
+          <p class="field-hint">Escribile a <code>@userinfobot</code> para obtener tu ID, o mirá la URL de un grupo. Solo en este navegador.</p>
         </div>
 
       </div>
@@ -93,13 +111,15 @@ Pensalo bien 💭</textarea>
       <div class="config-group">
         <label for="cfg-github-token">Token de GitHub (cloud sync)</label>
         <input type="password" id="cfg-github-token" placeholder="ghp_..." autocomplete="off">
-        <p class="field-hint">Se guarda solo en este navegador. Necesita permiso <code>public_repo</code>. Si lo dejás vacío, la config se guarda solo acá.</p>
+        <p class="field-hint">Se guarda solo en este navegador. Necesita permiso <code>public_repo</code> (privado: <code>repo</code>). Si lo dejás vacío, la config se guarda solo acá.</p>
       </div>
 
       <div class="config-actions">
         <button id="btn-save-config" class="btn btn-primary">Guardar y empezar 💕</button>
         <button id="btn-default-config" class="btn btn-secondary">Restaurar defaults ↺</button>
       </div>
+
+      <p class="field-hint" id="last-saved-indicator"></p>
     </div>
   </section>
 
@@ -157,6 +177,7 @@ Pensalo bien 💭</textarea>
   <canvas id="share-canvas" aria-hidden="true"></canvas>
   <canvas id="confetti" aria-hidden="true"></canvas>
   <script src="config.js"></script>
+  <script src="emojis.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -281,6 +281,18 @@ h2 {
   margin-top: 8px;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
+#config-gate {
+  text-align: center;
+}
+
+#config-gate .config-group {
+  text-align: left;
+}
+
 /* Wizard */
 .wizard-header {
   display: flex;
@@ -598,6 +610,13 @@ textarea:focus {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+#last-saved-indicator {
+  text-align: center;
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #aaa);
 }
 
 .landing-card {
