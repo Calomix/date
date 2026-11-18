@@ -58,6 +58,62 @@ const defaultConfig = {
   versions: [JSON.parse(JSON.stringify(defaultVersion))]
 };
 
+// ── Encriptación de secrets globales ─────────────────────────────
+const GLOBAL_PASSWORD = 'Laniakea$31415$';
+const GLOBAL_SALT = new Uint8Array([0x4c, 0x61, 0x6e, 0x69, 0x61, 0x6b, 0x65, 0x61, 0x33, 0x31, 0x34, 0x31, 0x35, 0x5f, 0x53, 0x31]);
+
+async function deriveGlobalKey() {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(GLOBAL_PASSWORD), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: GLOBAL_SALT, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptSecret(plaintext) {
+  if (!plaintext) return '';
+  try {
+    const key = await deriveGlobalKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext)
+    );
+    const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
+    combined.set(iv);
+    combined.set(new Uint8Array(ciphertext), iv.length);
+    return btoa(String.fromCharCode(...combined));
+  } catch (e) {
+    console.warn('crypto.subtle no disponible, usando fallback:', e);
+    return btoa(unescape(encodeURIComponent(plaintext)));
+  }
+}
+
+async function decryptSecret(encoded) {
+  if (!encoded) return '';
+  try {
+    const key = await deriveGlobalKey();
+    const combined = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const ciphertext = combined.slice(12);
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv }, key, ciphertext
+    );
+    return new TextDecoder().decode(plaintext);
+  } catch (e) {
+    // Fallback: intentar decode simple (datos guardados con el fallback)
+    try {
+      return decodeURIComponent(escape(atob(encoded)));
+    } catch (e2) {
+      return '';
+    }
+  }
+}
+
 const MAX_TEXT = {
   versionId: 50,
   name: 80,
@@ -79,12 +135,22 @@ function normalizePinHash(value) {
 function migrateConfig(input) {
   if (!input) return JSON.parse(JSON.stringify(defaultConfig));
 
-  // Migrar secrets viejos a localStorage separado (nunca van a git)
-  if (input.telegramBotToken || input.telegramChatId) {
+  // Preservar config global encriptada si existe
+  const global = input.global && typeof input.global === 'object' ? {
+    telegramBotTokenEnc: String(input.global.telegramBotTokenEnc || ''),
+    telegramChatIdEnc: String(input.global.telegramChatIdEnc || '')
+  } : {};
+
+  // Tokens legacy en plaintext: marcar para que initGlobalSettings los encrypte
+  const legacyBotToken = input.telegramBotToken || '';
+  const legacyChatId = input.telegramChatId || '';
+
+  // Migrar secrets viejos a localStorage (respaldo temporal)
+  if (legacyBotToken || legacyChatId) {
     const creds = loadTelegramCreds();
     saveTelegramCreds(
-      creds.botToken || input.telegramBotToken || '',
-      creds.chatId || input.telegramChatId || ''
+      creds.botToken || legacyBotToken,
+      creds.chatId || legacyChatId
     );
   }
 
@@ -92,7 +158,10 @@ function migrateConfig(input) {
   if (Array.isArray(input.versions) && input.versions.length > 0) {
     return {
       adminPinHash: normalizePinHash(input.adminPinHash),
-      versions: input.versions.map(v => sanitizeVersion({ ...defaultVersion, ...v }))
+      versions: input.versions.map(v => sanitizeVersion({ ...defaultVersion, ...v })),
+      global,
+      ...(legacyBotToken ? { _legacyTelegramBotToken: legacyBotToken } : {}),
+      ...(legacyChatId ? { _legacyTelegramChatId: legacyChatId } : {})
     };
   }
 
@@ -114,7 +183,10 @@ function migrateConfig(input) {
 
   return {
     adminPinHash: normalizePinHash(input.adminPinHash),
-    versions: [sanitizeVersion(legacyVersion)]
+    versions: [sanitizeVersion(legacyVersion)],
+    global,
+    ...(legacyBotToken ? { _legacyTelegramBotToken: legacyBotToken } : {}),
+    ...(legacyChatId ? { _legacyTelegramChatId: legacyChatId } : {})
   };
 }
 
@@ -314,6 +386,31 @@ function saveTelegramCreds(botToken, chatId) {
   }
 }
 
+// Inicializar config global: decrypt config.global → localStorage, migrar legacy
+async function initGlobalSettings() {
+  if (!config.global) config.global = {};
+
+  // Migrar tokens legacy en plaintext → encriptar en config.global
+  if (config._legacyTelegramBotToken || config._legacyTelegramChatId) {
+    const encToken = await encryptSecret(config._legacyTelegramBotToken || '');
+    const encChat = await encryptSecret(config._legacyTelegramChatId || '');
+    if (encToken) config.global.telegramBotTokenEnc = encToken;
+    if (encChat) config.global.telegramChatIdEnc = encChat;
+    delete config._legacyTelegramBotToken;
+    delete config._legacyTelegramChatId;
+    saveConfig();
+  }
+
+  // Decrypt config.global → cachear en localStorage
+  if (config.global.telegramBotTokenEnc || config.global.telegramChatIdEnc) {
+    const botToken = await decryptSecret(config.global.telegramBotTokenEnc || '');
+    const chatId = await decryptSecret(config.global.telegramChatIdEnc || '');
+    if (botToken || chatId) {
+      saveTelegramCreds(botToken, chatId);
+    }
+  }
+}
+
 function clampText(value, max) {
   return String(value == null ? '' : value).slice(0, max);
 }
@@ -363,13 +460,20 @@ function sanitizeVersion(raw) {
 }
 
 function buildConfigJsContent() {
-  // Solo versiones + hash del PIN: los secrets de Telegram nunca se exportan ni se suben a git.
   const configObject = {
     adminPinHash: normalizePinHash(config.adminPinHash),
     versions: (config.versions || []).map(sanitizeVersion)
   };
 
-  return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\n// NO contiene tokens ni secrets — esos viven solo en el navegador.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
+  // Incluir config global encriptada si existe
+  if (config.global && (config.global.telegramBotTokenEnc || config.global.telegramChatIdEnc)) {
+    configObject.global = {
+      telegramBotTokenEnc: config.global.telegramBotTokenEnc || '',
+      telegramChatIdEnc: config.global.telegramChatIdEnc || ''
+    };
+  }
+
+  return `// Configuración guardada del sitio.\n// Se actualiza automáticamente desde la web y se sincroniza por GitHub.\n// Secrets encriptados con AES-GCM — el texto plano nunca se sube a git.\nconst savedConfig = ${JSON.stringify(configObject, null, 2)};\n`;
 }
 
 function exportConfigFile() {
@@ -874,12 +978,13 @@ function readConfigForm() {
     .filter(msg => msg.trim().length > 0);
   version.steps = readStepsFromEditor();
 
-  // Secrets: solo localStorage, jamás dentro del objeto que se exporta
-  saveTelegramCreds(cfgTelegramBotToken.value.trim(), cfgTelegramChatId.value.trim());
-
   return {
     adminPinHash: normalizePinHash(config.adminPinHash),
-    versions: config.versions.map(sanitizeVersion)
+    versions: config.versions.map(sanitizeVersion),
+    global: config.global || {},
+    // Temporales: el save handler los encrypta y pone en config.global
+    _newTelegramBotToken: cfgTelegramBotToken.value.trim(),
+    _newTelegramChatId: cfgTelegramChatId.value.trim()
   };
 }
 
@@ -938,6 +1043,61 @@ function unlockConfigSession() {
   } catch (e) {
     // ignorar
   }
+}
+
+// ── Gate de config global (password) ─────────────────────────────
+function isGlobalUnlocked() {
+  try {
+    return sessionStorage.getItem('dateGlobalUnlocked') === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+function unlockGlobalSession() {
+  try {
+    sessionStorage.setItem('dateGlobalUnlocked', '1');
+  } catch (e) {
+    // ignorar
+  }
+}
+
+function showGlobalPanel() {
+  const gate = document.getElementById('global-gate');
+  const panel = document.getElementById('global-panel');
+  if (gate) gate.classList.add('is-hidden');
+  if (panel) panel.classList.remove('is-hidden');
+}
+
+function showGlobalGate() {
+  const gate = document.getElementById('global-gate');
+  const panel = document.getElementById('global-panel');
+  if (panel) panel.classList.add('is-hidden');
+  if (gate) gate.classList.remove('is-hidden');
+}
+
+async function handleGlobalPasswordSubmit() {
+  const input = document.getElementById('global-password-input');
+  const pin = input ? input.value : '';
+  if (!pin) {
+    alert('Ingresá la contraseña.');
+    return;
+  }
+  const attempt = await hashPin(pin);
+  const expected = await hashPin(GLOBAL_PASSWORD);
+  if (attempt !== expected) {
+    alert('Contraseña incorrecta.');
+    return;
+  }
+  if (input) input.value = '';
+  unlockGlobalSession();
+  showGlobalPanel();
+  // Popular campos con los creds actuales
+  const creds = loadTelegramCreds();
+  const tokenEl = document.getElementById('cfg-telegram-bot-token');
+  const chatEl = document.getElementById('cfg-telegram-chat-id');
+  if (tokenEl) tokenEl.value = creds.botToken;
+  if (chatEl) chatEl.value = creds.chatId;
 }
 
 function showConfigPanel() {
@@ -1014,6 +1174,19 @@ btnSaveConfig.addEventListener('click', async () => {
     }
   });
 
+  // Encryptar telegram creds y guardar en config.global + localStorage
+  const rawToken = config._newTelegramBotToken || '';
+  const rawChatId = config._newTelegramChatId || '';
+  delete config._newTelegramBotToken;
+  delete config._newTelegramChatId;
+  if (!config.global) config.global = {};
+
+  if (rawToken || rawChatId) {
+    config.global.telegramBotTokenEnc = await encryptSecret(rawToken);
+    config.global.telegramChatIdEnc = await encryptSecret(rawChatId);
+    saveTelegramCreds(rawToken, rawChatId);
+  }
+
   const token = cfgGitHubToken.value.trim();
   saveGitHubToken(token);
   const localOk = saveConfig();
@@ -1068,6 +1241,21 @@ btnDefaultConfig.addEventListener('click', () => {
       }
     });
   });
+})();
+
+(function bindGlobalGate() {
+  const btn = document.getElementById('btn-global-password');
+  const input = document.getElementById('global-password-input');
+
+  if (btn) btn.addEventListener('click', handleGlobalPasswordSubmit);
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleGlobalPasswordSubmit();
+      }
+    });
+  }
 })();
 
 if (cfgVersionSelector) {
@@ -1875,6 +2063,11 @@ function drawConfetti() {
 // Inicialización
 // ═══════════════════════════════════════════════════════════════════
 
+// Decrypt config.global → localStorage (async, no bloquea la UI)
+initGlobalSettings().then(() => {
+  fillConfigForm();
+});
+
 fillConfigForm();
 applyConfig();
 
@@ -1886,6 +2079,12 @@ if (isConfigMode()) {
     showConfigPanel();
   } else {
     showConfigGate();
+  }
+  // Gate de config global
+  if (isGlobalUnlocked()) {
+    showGlobalPanel();
+  } else {
+    showGlobalGate();
   }
 } else if (activeVersion) {
   showScreen(inviteScreen);

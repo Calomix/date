@@ -293,6 +293,26 @@ h2 {
   text-align: left;
 }
 
+#global-gate {
+  text-align: center;
+  margin-top: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+}
+
+#global-gate .config-group {
+  text-align: left;
+}
+
+#global-gate .config-actions {
+  margin-top: 8px;
+}
+
+#global-panel .config-group {
+  text-align: left;
+}
+
 /* Wizard */
 .wizard-header {
   display: flex;

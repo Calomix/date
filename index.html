@@ -93,19 +93,32 @@ Pensalo bien 💭</textarea>
       </div>
 
       <div class="config-section">
-        <h3>Integraciones</h3>
-        <div class="config-group">
-          <label for="cfg-telegram-bot-token">Token del bot de Telegram</label>
-          <input type="password" id="cfg-telegram-bot-token" placeholder="123456789:ABC..." autocomplete="off">
-          <p class="field-hint">Se guarda solo en este navegador. Nunca se sube a git.</p>
+        <h3>Configuración global</h3>
+        <p class="field-hint">Estos valores no están vinculados al versionado. Se guardan encriptados en config.js.</p>
+
+        <div id="global-gate">
+          <div class="config-group">
+            <label for="global-password-input">Contraseña</label>
+            <input type="password" id="global-password-input" placeholder="••••••••" autocomplete="off" maxlength="64">
+          </div>
+          <div class="config-actions">
+            <button type="button" id="btn-global-password" class="btn btn-secondary">Desbloquear</button>
+          </div>
         </div>
 
-        <div class="config-group">
-          <label for="cfg-telegram-chat-id">Chat ID de Telegram</label>
-          <input type="text" id="cfg-telegram-chat-id" placeholder="12345678" autocomplete="off">
-          <p class="field-hint">Escribile a <code>@userinfobot</code> para obtener tu ID, o mirá la URL de un grupo. Solo en este navegador.</p>
-        </div>
+        <div id="global-panel" class="is-hidden">
+          <div class="config-group">
+            <label for="cfg-telegram-bot-token">Token del bot de Telegram</label>
+            <input type="password" id="cfg-telegram-bot-token" placeholder="123456789:ABC..." autocomplete="off">
+            <p class="field-hint">Se guarda encriptado en config.js. Se restaura automáticamente en cualquier dispositivo.</p>
+          </div>
 
+          <div class="config-group">
+            <label for="cfg-telegram-chat-id">Chat ID de Telegram</label>
+            <input type="text" id="cfg-telegram-chat-id" placeholder="12345678" autocomplete="off">
+            <p class="field-hint">Escribile a <code>@userinfobot</code> para obtener tu ID, o mirá la URL de un grupo.</p>
+          </div>
+        </div>
       </div>
 
       <div class="config-group">
