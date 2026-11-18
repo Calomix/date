@@ -137,6 +137,73 @@ const savedConfig = {
           ]
         }
       ]
+    },
+    {
+      "id": "sofi",
+      "name": "Shofi",
+      "inviteTitle": "¿Quieres salir conmigo?",
+      "inviteSubtitle": "Tengo un montón de ganas de verte y quiero que coordinemos todo juntos.",
+      "notePlaceholder": "Ej: quitame el frío ajjaj ✨",
+      "noMessages": [
+        "No 💔",
+        "¿Segura?",
+        "¿Segurísima? 🥺",
+        "¿Cómo que no? 😏",
+        "Pensalo bien 💭"
+      ],
+      "steps": [
+        {
+          "key": "food",
+          "emoji": "🍽️",
+          "title": "¿Qué se te antoja?",
+          "subtitle": "Elige lo que más te provoque",
+          "gridClass": "options-grid",
+          "options": [
+            "Un Coffee ☕",
+            "Pizza 🍕",
+            "Algo al plato 🍽️",
+            "Lo que sea mientras sea contigo ✨"
+          ]
+        },
+        {
+          "key": "time",
+          "emoji": "🏡",
+          "title": "¿A qué hora te busco?",
+          "subtitle": "O si preferís encontrarnos",
+          "gridClass": "options-grid",
+          "options": [
+            "19:30 🕢",
+            "20:00 🕗",
+            "20:30 🕣",
+            "Nos encontramos ahí 🚕"
+          ]
+        },
+        {
+          "key": "plan",
+          "emoji": "✨",
+          "title": "¿Qué onda el plan?",
+          "subtitle": "Qué tenés pensado para hoy",
+          "gridClass": "options-grid",
+          "options": [
+            "Meriendita cute 🍰",
+            "Tomar algo 🍹",
+            "Pasear 💫",
+            "Lo que sea pero juntos 💞"
+          ]
+        },
+        {
+          "key": "vibe",
+          "emoji": "🌙",
+          "title": "¿Ambiente?",
+          "subtitle": "En qué mood estás hoy?",
+          "gridClass": "options-grid-three",
+          "options": [
+            "Chill 🌿",
+            "Animado 🎉",
+            "Íntimo 🕯️"
+          ]
+        }
+      ]
     }
   ]
 };
