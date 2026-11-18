@@ -1213,9 +1213,30 @@ btnSaveConfig.addEventListener('click', async () => {
   alert(msg);
 
   renderLastSaved();
-  applyConfig();
+
+  // Redirigir a ?v=<id> de la versión editada para que la URL sea correcta
+  const editedVersion = config.versions[editingVersionIndex] || config.versions[0];
+  const vid = editedVersion && editedVersion.id ? editedVersion.id : '';
   exitConfigMode();
-  showScreen(inviteScreen);
+  if (vid) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', vid);
+    window.history.replaceState({}, '', url.toString());
+  }
+  // Resetear el wizard y regenerarlo con la versión correcta
+  currentStep = 0;
+  noMessageIndex = 0;
+  selections = {};
+  activeVersion = getActiveVersion();
+  if (activeVersion) {
+    (activeVersion.steps || []).forEach(step => selections[step.key] = null);
+    inviteTitle.textContent = renderTemplate(activeVersion.inviteTitle, activeVersion);
+    inviteSubtitle.textContent = renderTemplate(activeVersion.inviteSubtitle, activeVersion);
+    generateWizard();
+    showScreen(inviteScreen);
+  } else {
+    showScreen(landingScreen);
+  }
 });
 
 btnDefaultConfig.addEventListener('click', () => {
